@@ -33,6 +33,13 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# local sqlite leftovers (the project uses Postgres now)
+*.db
+*.db-journal
+
+# playwright test artifacts
+/tests/*.png
+
 # vercel
 .vercel
 

@@ -1,26 +1,228 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   Liquid Glass — Apple-style frosted-glass system over shadcn/ui.
+   Teal/aqua brand (mapped onto shadcn --primary). Light + dark,
+   toggled by a `.dark` class on <html>. SF system type throughout.
+   ============================================================ */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+
+  /* ---- liquid-glass tokens (namespaced, no shadcn collision) ---- */
+  --bg: #e9eaef;
+  --bg-tint-1: rgba(13, 178, 165, 0.16); /* teal glow   */
+  --bg-tint-2: rgba(99, 102, 241, 0.12); /* indigo glow */
+  --bg-tint-3: rgba(236, 173, 120, 0.1); /* warm glow   */
+
+  --glass: rgba(255, 255, 255, 0.6);
+  --glass-strong: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-edge: rgba(17, 24, 39, 0.06);
+  --glass-shadow: 0 1px 1px rgba(17, 24, 39, 0.04), 0 12px 34px -16px rgba(17, 24, 39, 0.28);
+  --glass-shadow-lg: 0 8px 60px -12px rgba(17, 24, 39, 0.4);
+
+  --brand: #0caa9b;
+  --brand-2: #16c6b3;
+  --brand-tint: rgba(13, 178, 165, 0.14);
+
+  --warn: #c8780f;
+  --warn-tint: rgba(200, 120, 15, 0.14);
+  --danger: #d6452f;
+  --danger-tint: rgba(214, 69, 47, 0.14);
+
+  --hairline: rgba(17, 24, 39, 0.08);
+
+  /* ---- shadcn semantic tokens (teal primary) ---- */
+  --radius: 0.85rem;
+  --background: oklch(1 0 0);
+  --foreground: #15161a;
+  --card: rgba(255, 255, 255, 0.7);
+  --card-foreground: #15161a;
+  --popover: rgba(255, 255, 255, 0.82);
+  --popover-foreground: #15161a;
+  --primary: #0caa9b;
+  --primary-foreground: #ffffff;
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: #15161a;
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: #8a8c96;
+  --accent: var(--brand-tint);
+  --accent-foreground: #0a6b62;
+  --destructive: #d6452f;
+  --border: rgba(17, 24, 39, 0.1);
+  --input: rgba(17, 24, 39, 0.12);
+  --ring: #0caa9b;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --bg: #06070a;
+  --bg-tint-1: rgba(13, 178, 165, 0.2);
+  --bg-tint-2: rgba(99, 102, 241, 0.16);
+  --bg-tint-3: rgba(236, 173, 120, 0.08);
+
+  --glass: rgba(28, 30, 36, 0.55);
+  --glass-strong: rgba(38, 40, 47, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-edge: rgba(255, 255, 255, 0.06);
+  --glass-shadow: 0 1px 1px rgba(0, 0, 0, 0.4), 0 14px 40px -16px rgba(0, 0, 0, 0.7);
+  --glass-shadow-lg: 0 10px 70px -10px rgba(0, 0, 0, 0.8);
+
+  --brand: #2dd4bf;
+  --brand-2: #5eead4;
+  --brand-tint: rgba(45, 212, 191, 0.16);
+
+  --warn: #f0b454;
+  --warn-tint: rgba(240, 180, 84, 0.16);
+  --danger: #ff6b54;
+  --danger-tint: rgba(255, 107, 84, 0.16);
+
+  --hairline: rgba(255, 255, 255, 0.1);
+
+  --background: #06070a;
+  --foreground: #f4f5f7;
+  --card: rgba(30, 32, 38, 0.62);
+  --card-foreground: #f4f5f7;
+  --popover: rgba(34, 36, 43, 0.82);
+  --popover-foreground: #f4f5f7;
+  --primary: #2dd4bf;
+  --primary-foreground: #04201d;
+  --secondary: oklch(0.26 0 0);
+  --secondary-foreground: #f4f5f7;
+  --muted: oklch(0.26 0 0);
+  --muted-foreground: #9395a0;
+  --accent: var(--brand-tint);
+  --accent-foreground: #7ff0e2;
+  --destructive: #ff6b54;
+  --border: rgba(255, 255, 255, 0.12);
+  --input: rgba(255, 255, 255, 0.16);
+  --ring: #2dd4bf;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-brand: var(--brand);
+  --color-ink: var(--foreground);
+  --color-ink-2: var(--ink-2, #4b4d57);
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI",
+    system-ui, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 14px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  font-family: var(--font-sans);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.01em;
 }
 
 body {
-  background: var(--background);
+  min-height: 100dvh;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(60% 50% at 12% 8%, var(--bg-tint-1), transparent 70%),
+    radial-gradient(55% 45% at 92% 18%, var(--bg-tint-2), transparent 72%),
+    radial-gradient(70% 60% at 78% 100%, var(--bg-tint-3), transparent 75%);
+  background-attachment: fixed;
+  transition: background-color 0.4s ease;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* -------- the glass primitive -------- */
+.glass {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 0 var(--glass-border);
+}
+
+.glass-strong {
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(30px) saturate(190%);
+  backdrop-filter: blur(30px) saturate(190%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow-lg), inset 0 1px 0 0 var(--glass-border);
+}
+
+/* form control styled like shadcn Input/Select — used by the date picker
+   trigger. 44px min height for comfortable mobile tapping. */
+.field {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--input);
+  background: transparent;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  border-radius: 12px;
+  padding: 0 0.875rem;
+  font-size: 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.field:focus,
+.field:focus-visible {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px var(--brand-tint);
+}
+
+/* -------- motion -------- */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-rise { animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-overlay { animation: overlay-in 0.22s ease both; }
+.animate-sheet { animation: sheet-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise, .animate-overlay, .animate-sheet { animation: none; }
 }

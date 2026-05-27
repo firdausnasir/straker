@@ -1,0 +1,49 @@
+// Commitment tracker — personal finance commitments (subscriptions, recurring, loans).
+// PostgreSQL (works locally and on Vercel/serverless). Enums are stored as
+// strings and validated at the boundary with zod (see src/lib/validation.ts).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // Pooled connection for serverless runtime (e.g. Neon pooler / PgBouncer).
+  url       = env("DATABASE_URL")
+  // Direct connection for migrations (`prisma migrate deploy`).
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  passwordHash String
+  createdAt    DateTime     @default(now())
+  commitments  Commitment[]
+}
+
+model Commitment {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String
+  // "subscription" | "recurring" | "loan" | "other"
+  type        String
+  // Money is stored as integer minor units (sen/cents). NEVER float.
+  amountMinor Int
+  // ISO-4217 code: "MYR" | "USD". No FX — value is exact in its own currency.
+  currency    String
+  // Billing cycle: "weekly" | "monthly" | "quarterly" | "yearly"
+  cycle       String
+  nextDueDate DateTime
+  // "AUTO" advances nextDueDate on/after due; "MANUAL" requires the user to renew.
+  renewalMode String   @default("MANUAL")
+  isActive    Boolean  @default(true)
+  notes       String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, isActive, nextDueDate])
+}
