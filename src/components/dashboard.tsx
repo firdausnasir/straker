@@ -2,12 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, ArrowUpDown, Sun, Moon, Sparkles } from "lucide-react";
+import { Plus, ArrowUpDown, Sparkles } from "lucide-react";
 import type { CommitmentDTO } from "@/lib/types";
 import { CommitmentCard } from "./commitment-card";
-import { QuickAddDialog } from "./quick-add-dialog";
+import { CommitmentDialog } from "./commitment-dialog";
 import { TabBar } from "./tab-bar";
-import { useTheme } from "./theme";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +29,6 @@ const SORT_ORDER: SortMode[] = ["due", "amount", "name"];
 
 export function Dashboard({ commitments }: { commitments: CommitmentDTO[] }) {
   const router = useRouter();
-  const { resolved, toggle } = useTheme();
   const [adding, setAdding] = useState(false);
   const [sort, setSort] = useState<SortMode>("due");
 
@@ -52,59 +50,67 @@ export function Dashboard({ commitments }: { commitments: CommitmentDTO[] }) {
 
   return (
     <div className="mx-auto min-h-dvh max-w-xl px-4 pb-32 sm:px-6">
-      {/* sticky top bar — theme · title · add/sort pill */}
-      <header className="animate-rise sticky top-0 z-20 flex items-center justify-between gap-3 py-4">
-        <button
-          onClick={toggle}
-          aria-label="Toggle theme"
-          className="glass grid h-11 w-11 place-items-center rounded-full text-foreground transition-transform active:scale-95"
-        >
-          {resolved === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
-        </button>
-
-        <div className="text-center">
-          <h1 className="text-[19px] font-bold tracking-tight text-foreground">All</h1>
-          <p className="text-[11px] font-medium text-muted-foreground">
-            {count} active · by {SORT_LABEL[sort].toLowerCase()}
-          </p>
-        </div>
-
-        <div className="glass flex items-center gap-1 rounded-full p-1">
-          <button
-            onClick={() => setAdding(true)}
-            aria-label="Add commitment"
-            className="grid h-11 w-11 place-items-center rounded-full text-foreground transition-colors hover:bg-[var(--brand-tint)] active:scale-95"
+      {/* Fixed sort + add cluster — pinned to the top-right of the page
+          container so the primary actions stay reachable while content scrolls.
+          Mirrors the tab bar's positioning logic: outer wrapper centers a
+          max-w-xl row, inner row right-aligns the pill so it lines up with
+          the card edges below. */}
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-30 flex justify-center px-4 pt-4 sm:px-6">
+        <div className="flex w-full max-w-xl justify-end">
+          <div
+            className="pointer-events-auto flex items-center gap-1 rounded-full bg-card p-1"
+            style={{ boxShadow: "var(--shadow-soft)" }}
           >
-            <Plus className="h-[19px] w-[19px]" strokeWidth={2.4} />
-          </button>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              aria-label="Sort"
-              className="grid h-11 w-11 place-items-center rounded-full text-foreground transition-colors hover:bg-[var(--brand-tint)] active:scale-95"
-            >
-              <ArrowUpDown className="h-[18px] w-[18px]" strokeWidth={2.2} />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="glass-strong w-44">
-              <DropdownMenuRadioGroup
-                value={sort}
-                onValueChange={(v) => setSort(v as SortMode)}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label="Sort"
+                className="grid h-11 w-11 place-items-center rounded-full text-foreground transition-colors hover:bg-secondary active:scale-95"
               >
-                <DropdownMenuLabel>Sort by</DropdownMenuLabel>
-                {SORT_ORDER.map((mode) => (
-                  <DropdownMenuRadioItem key={mode} value={mode}>
-                    {SORT_LABEL[mode]}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <ArrowUpDown className="h-[18px] w-[18px]" strokeWidth={2} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuRadioGroup
+                  value={sort}
+                  onValueChange={(v) => setSort(v as SortMode)}
+                >
+                  <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+                  {SORT_ORDER.map((mode) => (
+                    <DropdownMenuRadioItem key={mode} value={mode}>
+                      {SORT_LABEL[mode]}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <button
+              onClick={() => setAdding(true)}
+              aria-label="Add commitment"
+              className="grid h-11 w-11 place-items-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95"
+              style={{ boxShadow: "var(--shadow-cta)" }}
+            >
+              <Plus className="h-[18px] w-[18px]" strokeWidth={2.4} />
+            </button>
+          </div>
         </div>
+      </div>
+
+      {/* In-flow title block. Right-padded so the title doesn't collide with
+          the fixed CTA cluster at the top of the page. */}
+      <header className="animate-rise mb-3 pr-28 pt-6">
+        <h1 className="font-display text-3xl text-foreground">All</h1>
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          {count} active · by {SORT_LABEL[sort].toLowerCase()}
+        </p>
       </header>
 
       {count > 0 ? (
-        <ul className="mt-1 space-y-2.5">
+        <ul className="mt-3 space-y-2.5">
           {sorted.map((c, i) => (
-            <li key={c.id} className="animate-rise" style={{ animationDelay: `${i * 45}ms` }}>
+            <li
+              key={c.id}
+              className="animate-rise"
+              style={{ animationDelay: `${i * 40}ms` }}
+            >
               <CommitmentCard commitment={c} />
             </li>
           ))}
@@ -116,9 +122,9 @@ export function Dashboard({ commitments }: { commitments: CommitmentDTO[] }) {
       <TabBar />
 
       {adding && (
-        <QuickAddDialog
+        <CommitmentDialog
           onClose={() => setAdding(false)}
-          onCreated={() => {
+          onSaved={() => {
             setAdding(false);
             router.refresh();
           }}
@@ -130,22 +136,25 @@ export function Dashboard({ commitments }: { commitments: CommitmentDTO[] }) {
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="glass mt-6 rounded-[var(--radius-2xl)] px-6 py-16 text-center">
-      <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-[#0caa9b] to-[#16c6b3] text-white shadow-lg">
+    <div className="surface mt-8 px-6 py-16 text-center">
+      <div
+        className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-primary text-primary-foreground"
+        style={{ boxShadow: "var(--shadow-cta)" }}
+      >
         <Sparkles className="h-7 w-7" />
       </div>
-      <p className="mt-5 text-xl font-bold text-foreground">A clean slate.</p>
-      <p className="mx-auto mt-1.5 max-w-xs text-[15px] leading-relaxed text-muted-foreground">
-        Add your first commitment — a streaming plan, the rent, a car loan — and
-        it&apos;ll appear here, ordered by what&apos;s due next.
+      <p className="mt-6 text-2xl font-semibold text-foreground">A clean slate.</p>
+      <p className="mx-auto mt-2 max-w-xs text-[14px] leading-relaxed text-muted-foreground">
+        Add your first commitment — a streaming plan, the rent, a car loan —
+        and it&apos;ll appear here, ordered by what&apos;s due next.
       </p>
       <button
         onClick={onAdd}
         className={cn(
-          "mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5",
-          "text-sm font-semibold text-primary-foreground shadow-[0_10px_30px_-10px_var(--brand)]",
-          "transition-transform active:scale-[0.98]",
+          "mt-7 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3",
+          "text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98]",
         )}
+        style={{ boxShadow: "var(--shadow-cta)" }}
       >
         <Plus className="h-4 w-4" strokeWidth={2.4} />
         Add a commitment

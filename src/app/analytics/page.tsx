@@ -31,33 +31,36 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="mx-auto min-h-dvh max-w-xl px-4 pb-32 sm:px-6">
-      <AppHeader title="Analytics" subtitle={`${stats.total} active commitments`} />
+      <AppHeader
+        title="Analytics"
+        subtitle={`${stats.total} active ${stats.total === 1 ? "commitment" : "commitments"}`}
+      />
 
       {stats.total === 0 ? (
-        <div className="glass mt-6 rounded-[var(--radius-2xl)] px-6 py-16 text-center">
-          <p className="text-lg font-bold text-foreground">Nothing to chart yet.</p>
-          <p className="mt-1.5 text-[15px] text-muted-foreground">
+        <div className="surface mt-6 px-6 py-16 text-center">
+          <p className="text-2xl font-semibold text-foreground">Nothing to chart yet.</p>
+          <p className="mt-2 text-[14px] text-muted-foreground">
             Add commitments and your monthly outlook shows up here.
           </p>
         </div>
       ) : (
-        <div className="mt-2 space-y-5">
+        <div className="mt-3 space-y-6">
           {/* Per-currency monthly outlook — currencies never mixed (no FX) */}
           <section className="space-y-2.5">
-            <h2 className="px-1 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <h2 className="px-1 text-[13px] font-medium text-muted-foreground">
               Monthly outlook
             </h2>
             {stats.byCurrency.map((row, i) => (
               <div
                 key={row.currency}
-                className="glass animate-rise flex items-center justify-between rounded-[var(--radius-2xl)] px-5 py-4"
+                className="surface animate-rise flex items-end justify-between px-5 py-5"
                 style={{ animationDelay: `${i * 50}ms` }}
               >
                 <div>
                   <p className="text-[13px] font-medium text-muted-foreground">
                     {row.currency} · {row.count} {row.count === 1 ? "item" : "items"}
                   </p>
-                  <p className="tnum mt-0.5 text-2xl font-bold text-foreground">
+                  <p className="tnum mt-1 text-3xl font-bold text-foreground">
                     ≈ {formatMoney(row.perMonthMinor, row.currency)}
                   </p>
                   <p className="text-[12px] text-muted-foreground">per month</p>
@@ -71,17 +74,17 @@ export default async function AnalyticsPage() {
               </div>
             ))}
             <p className="px-1 text-[12px] text-muted-foreground">
-              Estimates normalise every cycle to a monthly figure. Weekly items use
-              52 weeks ÷ 12 months.
+              Estimates normalise every cycle to a monthly figure. Weekly items
+              use 52 weeks ÷ 12 months.
             </p>
           </section>
 
           {/* Breakdown by type */}
           <section className="space-y-2.5">
-            <h2 className="px-1 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <h2 className="px-1 text-[13px] font-medium text-muted-foreground">
               By type
             </h2>
-            <div className="glass divide-y divide-[var(--hairline)] rounded-[var(--radius-2xl)] px-5">
+            <div className="surface divide-y divide-[var(--hairline)] px-5">
               {stats.byType.map((row) => (
                 <div key={row.type} className="flex items-center justify-between py-3.5">
                   <span className="text-[15px] font-medium text-foreground">

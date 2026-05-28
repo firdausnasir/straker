@@ -20,14 +20,14 @@ export function SettingsClient({ email }: { email: string }) {
   }
 
   return (
-    <div className="mt-2 space-y-5">
+    <div className="mt-3 space-y-6">
       <section className="space-y-2.5">
-        <h2 className="px-1 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <h2 className="px-1 text-[13px] font-medium text-muted-foreground">
           Appearance
         </h2>
-        <div className="glass rounded-[var(--radius-2xl)] px-5 py-4">
+        <div className="surface px-5 py-5">
           <div className="flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--brand-tint)] text-primary">
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-[var(--clay-tint)] text-primary">
               <Palette className="h-[18px] w-[18px]" />
             </span>
             <span>
@@ -39,7 +39,7 @@ export function SettingsClient({ email }: { email: string }) {
           </div>
 
           {/* segmented control: System / Light / Dark */}
-          <div className="mt-4 grid grid-cols-3 gap-1 rounded-2xl bg-[var(--secondary)] p-1">
+          <div className="mt-5 grid grid-cols-3 gap-1 rounded-full bg-[var(--parchment-2)] p-1">
             {OPTIONS.map(({ value, label, icon: Icon }) => {
               const active = pref === value;
 
@@ -49,11 +49,12 @@ export function SettingsClient({ email }: { email: string }) {
                   onClick={() => setPref(value)}
                   aria-pressed={active}
                   className={cn(
-                    "flex min-h-11 items-center justify-center gap-1.5 rounded-xl py-2 text-[13px] font-medium transition-all",
+                    "flex min-h-11 items-center justify-center gap-1.5 rounded-full py-2 text-[13px] font-medium transition-all",
                     active
-                      ? "bg-primary text-primary-foreground shadow-[0_6px_18px_-8px_var(--brand)]"
+                      ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground",
                   )}
+                  style={active ? { boxShadow: "var(--shadow-cta)" } : undefined}
                 >
                   <Icon className="h-4 w-4" />
                   {label}
@@ -65,17 +66,17 @@ export function SettingsClient({ email }: { email: string }) {
       </section>
 
       <section className="space-y-2.5">
-        <h2 className="px-1 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <h2 className="px-1 text-[13px] font-medium text-muted-foreground">
           Account
         </h2>
-        <div className="glass rounded-[var(--radius-2xl)] px-5 py-4">
+        <div className="surface px-5 py-5">
           <p className="text-[13px] text-muted-foreground">Signed in as</p>
           <p className="mt-0.5 truncate text-[15px] font-semibold text-foreground">{email}</p>
         </div>
         <Button
           variant="secondary"
           onClick={handleLogout}
-          className="h-12 w-full justify-center gap-2 rounded-[var(--radius-2xl)] text-[15px] font-semibold text-[var(--danger)]"
+          className="h-12 w-full justify-center gap-2 rounded-2xl text-[15px] font-semibold text-[var(--danger)] hover:bg-[var(--danger-tint)] hover:text-[var(--danger)]"
         >
           <LogOut className="h-[18px] w-[18px]" />
           Sign out

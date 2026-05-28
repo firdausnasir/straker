@@ -17,17 +17,17 @@ export default async function LoginPage() {
       </div>
 
       <div className="animate-rise">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">
-          Commitment Tracker
+        <p className="text-xs font-medium uppercase tracking-[0.24em] text-primary">
+          Straker
         </p>
-        <h1 className="mt-3 text-5xl font-bold leading-[0.98] tracking-tight text-foreground">
+        <h1 className="font-display mt-4 text-5xl leading-[1.02] text-foreground">
           The quiet
           <br />
           ledger.
         </h1>
         <p className="mt-4 max-w-xs text-[15px] leading-relaxed text-muted-foreground">
-          Every subscription, recurring bill, and loan — sorted by what falls due
-          next. In ringgit or dollars, exactly as charged.
+          Every subscription, recurring bill, and loan — sorted by what falls
+          due next. In ringgit or dollars, exactly as charged.
         </p>
       </div>
 

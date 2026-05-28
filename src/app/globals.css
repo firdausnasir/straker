@@ -5,104 +5,129 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================================
-   Liquid Glass — Apple-style frosted-glass system over shadcn/ui.
-   Teal/aqua brand (mapped onto shadcn --primary). Light + dark,
-   toggled by a `.dark` class on <html>. SF system type throughout.
+   Earthy Soft — warm sand bg, parchment cards floating with
+   soft umber-tinted shadows, generous rounded corners, single
+   terracotta accent. Display type Fraunces, body Inter. Gentle
+   rise motion on cards. Light + dark via .dark class on <html>.
    ============================================================ */
 
 :root {
   color-scheme: light;
 
-  /* ---- liquid-glass tokens (namespaced, no shadcn collision) ---- */
-  --bg: #e9eaef;
-  --bg-tint-1: rgba(13, 178, 165, 0.16); /* teal glow   */
-  --bg-tint-2: rgba(99, 102, 241, 0.12); /* indigo glow */
-  --bg-tint-3: rgba(236, 173, 120, 0.1); /* warm glow   */
+  /* ---- earthy palette ---- */
+  --sand: #ece4d3;          /* page bg — warmer/deeper sand for cards to lift off */
+  --sand-edge: #e0d6c1;     /* subtle bg variation for warmth */
+  --parchment: #faf5ea;     /* card surface (lighter than bg → cards lift) */
+  --parchment-2: #f3ecdc;   /* recessed/segmented bg */
+  --umber: #2d2620;         /* primary ink */
+  --stone: #7a6a5a;         /* muted ink */
+  --stone-2: #9d8d7c;       /* hint/placeholder */
+  --taupe: rgba(45, 38, 32, 0.08); /* hairline */
 
-  --glass: rgba(255, 255, 255, 0.6);
-  --glass-strong: rgba(255, 255, 255, 0.8);
-  --glass-border: rgba(255, 255, 255, 0.7);
-  --glass-edge: rgba(17, 24, 39, 0.06);
-  --glass-shadow: 0 1px 1px rgba(17, 24, 39, 0.04), 0 12px 34px -16px rgba(17, 24, 39, 0.28);
-  --glass-shadow-lg: 0 8px 60px -12px rgba(17, 24, 39, 0.4);
+  --clay: #b75a3c;          /* terracotta accent (CTA, active) */
+  --clay-soft: #c7755a;     /* hover/lighter clay */
+  --clay-tint: rgba(183, 90, 60, 0.10);
+  --ochre: #c68a2e;         /* warn */
+  --ochre-tint: rgba(198, 138, 46, 0.14);
+  --rust: #a13a2a;          /* danger */
+  --rust-tint: rgba(161, 58, 42, 0.10);
 
-  --brand: #0caa9b;
-  --brand-2: #16c6b3;
-  --brand-tint: rgba(13, 178, 165, 0.14);
+  /* ---- soft warm shadows ---- */
+  --shadow-soft:
+    0 1px 2px rgba(45, 38, 32, 0.04),
+    0 4px 14px -6px rgba(45, 38, 32, 0.10);
+  --shadow-float:
+    0 2px 4px rgba(45, 38, 32, 0.05),
+    0 14px 32px -14px rgba(45, 38, 32, 0.22);
+  --shadow-cta:
+    0 2px 6px rgba(183, 90, 60, 0.18),
+    0 10px 28px -10px rgba(183, 90, 60, 0.35);
 
-  --warn: #c8780f;
-  --warn-tint: rgba(200, 120, 15, 0.14);
-  --danger: #d6452f;
-  --danger-tint: rgba(214, 69, 47, 0.14);
+  /* ---- shadcn semantic tokens ---- */
+  --radius: 0.875rem;
+  --background: var(--sand);
+  --foreground: var(--umber);
+  --card: var(--parchment);
+  --card-foreground: var(--umber);
+  --popover: var(--parchment);
+  --popover-foreground: var(--umber);
+  --primary: var(--clay);
+  --primary-foreground: #faf5ea;
+  --secondary: var(--parchment-2);
+  --secondary-foreground: var(--umber);
+  --muted: var(--parchment-2);
+  --muted-foreground: var(--stone);
+  --accent: var(--clay-tint);
+  --accent-foreground: var(--clay);
+  --destructive: var(--rust);
+  --border: var(--taupe);
+  --input: rgba(45, 38, 32, 0.14);
+  --ring: var(--clay);
 
-  --hairline: rgba(17, 24, 39, 0.08);
-
-  /* ---- shadcn semantic tokens (teal primary) ---- */
-  --radius: 0.85rem;
-  --background: oklch(1 0 0);
-  --foreground: #15161a;
-  --card: rgba(255, 255, 255, 0.7);
-  --card-foreground: #15161a;
-  --popover: rgba(255, 255, 255, 0.82);
-  --popover-foreground: #15161a;
-  --primary: #0caa9b;
-  --primary-foreground: #ffffff;
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: #15161a;
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: #8a8c96;
-  --accent: var(--brand-tint);
-  --accent-foreground: #0a6b62;
-  --destructive: #d6452f;
-  --border: rgba(17, 24, 39, 0.1);
-  --input: rgba(17, 24, 39, 0.12);
-  --ring: #0caa9b;
+  /* legacy aliases — referenced by a few components */
+  --hairline: var(--taupe);
+  --brand: var(--clay);
+  --warn: var(--ochre);
+  --warn-tint: var(--ochre-tint);
+  --danger: var(--rust);
+  --danger-tint: var(--rust-tint);
 }
 
 .dark {
   color-scheme: dark;
 
-  --bg: #06070a;
-  --bg-tint-1: rgba(13, 178, 165, 0.2);
-  --bg-tint-2: rgba(99, 102, 241, 0.16);
-  --bg-tint-3: rgba(236, 173, 120, 0.08);
+  --sand: #1c1611;
+  --sand-edge: #251e17;
+  --parchment: #2a221b;
+  --parchment-2: #342a22;
+  --umber: #f0e6d6;
+  --stone: #a89a87;
+  --stone-2: #847766;
+  --taupe: rgba(240, 230, 214, 0.10);
 
-  --glass: rgba(28, 30, 36, 0.55);
-  --glass-strong: rgba(38, 40, 47, 0.72);
-  --glass-border: rgba(255, 255, 255, 0.14);
-  --glass-edge: rgba(255, 255, 255, 0.06);
-  --glass-shadow: 0 1px 1px rgba(0, 0, 0, 0.4), 0 14px 40px -16px rgba(0, 0, 0, 0.7);
-  --glass-shadow-lg: 0 10px 70px -10px rgba(0, 0, 0, 0.8);
+  --clay: #d8755a;
+  --clay-soft: #e08770;
+  --clay-tint: rgba(216, 117, 90, 0.14);
+  --ochre: #d99b40;
+  --ochre-tint: rgba(217, 155, 64, 0.14);
+  --rust: #c84a3c;
+  --rust-tint: rgba(200, 74, 60, 0.14);
 
-  --brand: #2dd4bf;
-  --brand-2: #5eead4;
-  --brand-tint: rgba(45, 212, 191, 0.16);
+  --shadow-soft:
+    0 1px 2px rgba(0, 0, 0, 0.30),
+    0 6px 16px -6px rgba(0, 0, 0, 0.45);
+  --shadow-float:
+    0 2px 4px rgba(0, 0, 0, 0.35),
+    0 18px 40px -14px rgba(0, 0, 0, 0.60);
+  --shadow-cta:
+    0 2px 6px rgba(216, 117, 90, 0.30),
+    0 12px 32px -10px rgba(216, 117, 90, 0.45);
 
-  --warn: #f0b454;
-  --warn-tint: rgba(240, 180, 84, 0.16);
-  --danger: #ff6b54;
-  --danger-tint: rgba(255, 107, 84, 0.16);
+  --background: var(--sand);
+  --foreground: var(--umber);
+  --card: var(--parchment);
+  --card-foreground: var(--umber);
+  --popover: var(--parchment);
+  --popover-foreground: var(--umber);
+  --primary: var(--clay);
+  --primary-foreground: #1c1611;
+  --secondary: var(--parchment-2);
+  --secondary-foreground: var(--umber);
+  --muted: var(--parchment-2);
+  --muted-foreground: var(--stone);
+  --accent: var(--clay-tint);
+  --accent-foreground: var(--clay);
+  --destructive: var(--rust);
+  --border: var(--taupe);
+  --input: rgba(240, 230, 214, 0.16);
+  --ring: var(--clay);
 
-  --hairline: rgba(255, 255, 255, 0.1);
-
-  --background: #06070a;
-  --foreground: #f4f5f7;
-  --card: rgba(30, 32, 38, 0.62);
-  --card-foreground: #f4f5f7;
-  --popover: rgba(34, 36, 43, 0.82);
-  --popover-foreground: #f4f5f7;
-  --primary: #2dd4bf;
-  --primary-foreground: #04201d;
-  --secondary: oklch(0.26 0 0);
-  --secondary-foreground: #f4f5f7;
-  --muted: oklch(0.26 0 0);
-  --muted-foreground: #9395a0;
-  --accent: var(--brand-tint);
-  --accent-foreground: #7ff0e2;
-  --destructive: #ff6b54;
-  --border: rgba(255, 255, 255, 0.12);
-  --input: rgba(255, 255, 255, 0.16);
-  --ring: #2dd4bf;
+  --hairline: var(--taupe);
+  --brand: var(--clay);
+  --warn: var(--ochre);
+  --warn-tint: var(--ochre-tint);
+  --danger: var(--rust);
+  --danger-tint: var(--rust-tint);
 }
 
 @theme inline {
@@ -125,19 +150,20 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --color-brand: var(--brand);
-  --color-ink: var(--foreground);
-  --color-ink-2: var(--ink-2, #4b4d57);
+  --color-brand: var(--clay);
+  --color-ink: var(--umber);
+  --color-stone: var(--stone);
 
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI",
-    system-ui, sans-serif;
+  /* Sans + display fonts loaded via next/font in layout.tsx. The CSS variables
+     (--font-inter, --font-fraunces) are injected on <html> by the loader. */
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 6px);
-  --radius-2xl: calc(var(--radius) + 14px);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 10px);
 }
 
 html {
@@ -145,18 +171,17 @@ html {
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
 }
 
 body {
   min-height: 100dvh;
-  background-color: var(--bg);
+  background-color: var(--background);
+  /* Very soft warm radial tint at the top — gives the sand bg a sun-warmed
+     feel without the previous glass-era multi-tint chaos. */
   background-image:
-    radial-gradient(60% 50% at 12% 8%, var(--bg-tint-1), transparent 70%),
-    radial-gradient(55% 45% at 92% 18%, var(--bg-tint-2), transparent 72%),
-    radial-gradient(70% 60% at 78% 100%, var(--bg-tint-3), transparent 75%);
+    radial-gradient(80% 50% at 50% 0%, rgba(255, 232, 200, 0.20), transparent 70%);
   background-attachment: fixed;
-  transition: background-color 0.4s ease;
 }
 
 .tnum {
@@ -164,25 +189,30 @@ body {
   font-feature-settings: "tnum" 1;
 }
 
-/* -------- the glass primitive -------- */
-.glass {
-  background: var(--glass);
-  -webkit-backdrop-filter: blur(22px) saturate(180%);
-  backdrop-filter: blur(22px) saturate(180%);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow), inset 0 1px 0 0 var(--glass-border);
+/* Display type — Fraunces, calm weight. Used for page titles. Slightly tighter
+   tracking to read as editorial, not romantic. */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.018em;
 }
 
-.glass-strong {
-  background: var(--glass-strong);
-  -webkit-backdrop-filter: blur(30px) saturate(190%);
-  backdrop-filter: blur(30px) saturate(190%);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow-lg), inset 0 1px 0 0 var(--glass-border);
+/* Floating parchment card. Soft warm shadow, generous radius. The shared
+   surface used by every primary content block. */
+.surface {
+  background: var(--card);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-soft);
 }
 
-/* form control styled like shadcn Input/Select — used by the date picker
-   trigger. 44px min height for comfortable mobile tapping. */
+.surface-float {
+  background: var(--card);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-float);
+}
+
+/* Form control — rounded, parchment-filled, soft inset feel. 44px min height
+   for mobile tap comfort. */
 .field {
   display: flex;
   width: 100%;
@@ -190,9 +220,9 @@ body {
   align-items: center;
   gap: 0.5rem;
   border: 1px solid var(--input);
-  background: transparent;
+  background: var(--card);
   color: var(--foreground);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 0 0.875rem;
   font-size: 16px;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -202,12 +232,13 @@ body {
 .field:focus-visible {
   outline: none;
   border-color: var(--ring);
-  box-shadow: 0 0 0 3px var(--brand-tint);
+  box-shadow: 0 0 0 3px var(--clay-tint);
 }
 
-/* -------- motion -------- */
+/* -------- motion --------
+   Gentle rise on lists, soft sheet for dialogs. Reduced-motion users get none. */
 @keyframes rise {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes overlay-in {
@@ -215,13 +246,13 @@ body {
   to { opacity: 1; }
 }
 @keyframes sheet-in {
-  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.animate-rise { animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.animate-overlay { animation: overlay-in 0.22s ease both; }
-.animate-sheet { animation: sheet-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-rise { animation: rise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-overlay { animation: overlay-in 0.20s ease both; }
+.animate-sheet { animation: sheet-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-rise, .animate-overlay, .animate-sheet { animation: none; }

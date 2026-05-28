@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { signOut } from "next-auth/react";
+import type { CommitmentDTO } from "@/lib/types";
 import {
   COMMITMENT_TYPES,
   CURRENCIES,
@@ -38,21 +39,41 @@ function toDateInput(date: Date): string {
   return new Date(date.getTime() - tzOffset).toISOString().slice(0, 10);
 }
 
-export function QuickAddDialog({
+// Minor units back to the major-unit string the amount input expects.
+// Exponent is fixed at 2 for both supported currencies (see money.ts).
+function toAmountInput(amountMinor: number): string {
+  return (amountMinor / 100).toFixed(2);
+}
+
+// Single form for both create and edit. Passing `commitment` switches it to
+// edit mode (PATCH the existing row); omitting it creates a new one.
+export function CommitmentDialog({
+  commitment,
   onClose,
-  onCreated,
+  onSaved,
 }: {
+  commitment?: CommitmentDTO;
   onClose: () => void;
-  onCreated: () => void;
+  onSaved: () => void;
 }) {
-  const [name, setName] = useState("");
-  const [type, setType] = useState<(typeof COMMITMENT_TYPES)[number]>("subscription");
-  const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState<(typeof CURRENCIES)[number]>("MYR");
-  const [cycle, setCycle] = useState<(typeof CYCLES)[number]>("monthly");
-  const [dueDate, setDueDate] = useState<Date>(() => new Date());
-  const [autoRenew, setAutoRenew] = useState(false);
-  const [notes, setNotes] = useState("");
+  const isEdit = Boolean(commitment);
+
+  const [name, setName] = useState(commitment?.name ?? "");
+  const [type, setType] = useState<(typeof COMMITMENT_TYPES)[number]>(
+    commitment?.type ?? "subscription",
+  );
+  const [amount, setAmount] = useState(
+    commitment ? toAmountInput(commitment.amountMinor) : "",
+  );
+  const [currency, setCurrency] = useState<(typeof CURRENCIES)[number]>(
+    commitment?.currency ?? "MYR",
+  );
+  const [cycle, setCycle] = useState<(typeof CYCLES)[number]>(commitment?.cycle ?? "monthly");
+  const [dueDate, setDueDate] = useState<Date>(() =>
+    commitment ? new Date(commitment.nextDueDate) : new Date(),
+  );
+  const [autoRenew, setAutoRenew] = useState(commitment?.renewalMode === "AUTO");
+  const [notes, setNotes] = useState(commitment?.notes ?? "");
   const [pending, setPending] = useState(false);
 
   async function handleSubmit(event: React.FormEvent) {
@@ -60,20 +81,23 @@ export function QuickAddDialog({
     setPending(true);
 
     try {
-      const res = await fetch("/api/commitments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          type,
-          amount,
-          currency,
-          cycle,
-          nextDueDate: toDateInput(dueDate),
-          renewalMode: autoRenew ? "AUTO" : "MANUAL",
-          notes,
-        }),
-      });
+      const res = await fetch(
+        isEdit ? `/api/commitments/${commitment!.id}` : "/api/commitments",
+        {
+          method: isEdit ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            type,
+            amount,
+            currency,
+            cycle,
+            nextDueDate: toDateInput(dueDate),
+            renewalMode: autoRenew ? "AUTO" : "MANUAL",
+            notes,
+          }),
+        },
+      );
 
       if (res.status === 401) {
         // Session no longer valid — clear it and re-authenticate.
@@ -89,8 +113,8 @@ export function QuickAddDialog({
         return;
       }
 
-      toast.success(`${name} added to your ledger`);
-      onCreated();
+      toast.success(isEdit ? `${name} updated` : `${name} added to your ledger`);
+      onSaved();
     } catch {
       toast.error("Network error. Try again.");
     } finally {
@@ -100,9 +124,11 @@ export function QuickAddDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="glass-strong max-h-[90dvh] gap-0 overflow-y-auto rounded-[var(--radius-2xl)] border-0 p-0 sm:max-w-md">
+      <DialogContent className="max-h-[90dvh] gap-0 overflow-y-auto rounded-[var(--radius-2xl)] p-0 sm:max-w-md">
         <DialogHeader className="px-6 pt-6 text-left">
-          <DialogTitle className="text-xl font-bold tracking-tight">Add a commitment</DialogTitle>
+          <DialogTitle className="text-xl font-semibold tracking-tight">
+            {isEdit ? "Edit commitment" : "Add a commitment"}
+          </DialogTitle>
           <DialogDescription>Tracked in its own currency — no conversion.</DialogDescription>
         </DialogHeader>
 
@@ -126,7 +152,7 @@ export function QuickAddDialog({
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="glass-strong">
+                <SelectContent>
                   {COMMITMENT_TYPES.map((t) => (
                     <SelectItem key={t} value={t}>
                       {TYPE_LABELS[t]}
@@ -142,7 +168,7 @@ export function QuickAddDialog({
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="glass-strong">
+                <SelectContent>
                   {CYCLES.map((c) => (
                     <SelectItem key={c} value={c}>
                       {CYCLE_LABELS[c]}
@@ -173,7 +199,7 @@ export function QuickAddDialog({
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="glass-strong">
+                <SelectContent>
                   {CURRENCIES.map((c) => (
                     <SelectItem key={c} value={c}>
                       {c}
@@ -204,7 +230,7 @@ export function QuickAddDialog({
             />
           </div>
 
-          <label className="glass flex cursor-pointer items-center justify-between rounded-2xl px-4 py-3">
+          <label className="flex cursor-pointer items-center justify-between rounded-2xl bg-[var(--parchment-2)] px-4 py-3.5">
             <span>
               <span className="block text-sm font-semibold text-foreground">Auto-renew</span>
               <span className="block text-xs text-muted-foreground">
@@ -223,9 +249,16 @@ export function QuickAddDialog({
             <Button
               type="submit"
               disabled={pending}
-              className="h-12 flex-[1.4] rounded-full text-[15px] shadow-[0_10px_30px_-10px_var(--brand)]"
+              className="h-12 flex-[1.4] rounded-full text-[15px]"
+              style={{ boxShadow: "var(--shadow-cta)" }}
             >
-              {pending ? "Creating…" : "Create"}
+              {pending
+                ? isEdit
+                  ? "Saving…"
+                  : "Creating…"
+                : isEdit
+                  ? "Save changes"
+                  : "Create"}
             </Button>
           </div>
         </form>

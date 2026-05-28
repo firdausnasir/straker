@@ -61,10 +61,10 @@ export function AuthForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="glass-strong animate-rise mt-9 rounded-[var(--radius-2xl)] p-7"
+      className="surface-float animate-rise mt-9 p-7"
       style={{ animationDelay: "80ms" }}
     >
-      <h2 className="text-2xl font-bold tracking-tight text-foreground">
+      <h2 className="text-xl font-semibold tracking-tight text-foreground">
         {isLogin ? "Welcome back" : "Create account"}
       </h2>
 
@@ -109,7 +109,8 @@ export function AuthForm() {
       <Button
         type="submit"
         disabled={pending}
-        className="mt-6 h-12 w-full rounded-full text-[15px] font-semibold shadow-[0_12px_34px_-12px_var(--brand)]"
+        className="mt-6 h-12 w-full rounded-full text-[15px] font-semibold"
+        style={{ boxShadow: "var(--shadow-cta)" }}
       >
         {pending ? "One moment…" : isLogin ? "Sign in" : "Create account"}
       </Button>

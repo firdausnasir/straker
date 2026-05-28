@@ -15,10 +15,14 @@ export function TabBar() {
   const pathname = usePathname();
 
   return (
-    // Raised pill, bottom margin. Full-width on mobile, content-width centered
-    // on desktop.
+    // Floating parchment pill at the bottom. Soft warm shadow lifts it off the
+    // sand bg. Full-width on mobile (within page padding), content-width on
+    // desktop.
     <nav className="fixed inset-x-0 bottom-0 z-30 flex justify-center px-4 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-      <div className="glass-strong flex w-full items-stretch gap-1 rounded-full p-1.5 sm:w-fit">
+      <div
+        className="flex w-full items-stretch gap-1 rounded-full bg-card p-1.5 sm:w-fit"
+        style={{ boxShadow: "var(--shadow-float)" }}
+      >
         {TABS.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;
 
@@ -35,7 +39,8 @@ export function TabBar() {
               {active && (
                 <span
                   aria-hidden
-                  className="absolute inset-0 rounded-full bg-primary shadow-[0_6px_20px_-6px_var(--brand)]"
+                  className="absolute inset-0 rounded-full bg-primary"
+                  style={{ boxShadow: "var(--shadow-cta)" }}
                 />
               )}
               <TabContent icon={Icon} label={label} />
@@ -56,9 +61,9 @@ function TabContent({ icon: Icon, label }: { icon: LucideIcon; label: string }) 
   return (
     <>
       {pending ? (
-        <Loader2 className="relative h-[20px] w-[20px] animate-spin" strokeWidth={2.2} />
+        <Loader2 className="relative h-[20px] w-[20px] animate-spin" strokeWidth={2} />
       ) : (
-        <Icon className="relative h-[20px] w-[20px]" strokeWidth={2.2} />
+        <Icon className="relative h-[20px] w-[20px]" strokeWidth={2} />
       )}
       <span className="relative">{label}</span>
     </>
