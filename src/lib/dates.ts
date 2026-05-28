@@ -22,29 +22,36 @@ export function urgencyOf(date: Date, now: Date = new Date()): Urgency {
   return "later";
 }
 
-// "Overdue by 2 days" / "Due today" / "Due in 5 days" / "Due in 3 weeks".
+// Tight, glanceable: "2 days late" / "Today" / "5 days" / "3 weeks". The card's
+// urgency rail + color carry the "overdue vs upcoming" signal, so the label
+// itself doesn't need to repeat "Due in".
 export function dueLabel(date: Date, now: Date = new Date()): string {
   const days = daysUntil(date, now);
 
   if (days < 0) {
     const n = Math.abs(days);
 
-    return `Overdue by ${n} day${n === 1 ? "" : "s"}`;
+    return `${n} day${n === 1 ? "" : "s"} late`;
   }
 
-  if (days === 0) return "Due today";
-  if (days === 1) return "Due tomorrow";
-  if (days <= 14) return `Due in ${days} days`;
+  if (days === 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  if (days <= 14) return `${days} days`;
 
   const weeks = Math.round(days / 7);
 
-  return `Due in ${weeks} week${weeks === 1 ? "" : "s"}`;
+  return `${weeks} week${weeks === 1 ? "" : "s"}`;
 }
 
-export function formatDueDate(date: Date): string {
+// Year is omitted when it matches the current year — keeps the meta line short
+// for everyday cases. Long-horizon items (loans crossing year boundaries) still
+// show the year so they're unambiguous.
+export function formatDueDate(date: Date, now: Date = new Date()): string {
+  const sameYear = date.getFullYear() === now.getFullYear();
+
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "short",
-    year: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
   }).format(date);
 }

@@ -10,7 +10,9 @@ Personal finance tracker — subscriptions, recurring bills, loans. Multi-curren
 ## Stack
 
 - Next.js 16 (App Router, Turbopack) · React 19 · TypeScript
-- Prisma + SQLite (`prisma/dev.db`)
+- Prisma + PostgreSQL (Supabase). Runtime uses the **transaction pooler**
+  (`DATABASE_URL`, port 6543, `?pgbouncer=true`); migrations use the **session
+  pooler** (`DIRECT_URL`, port 5432) — DDL can't run through pgbouncer.
 - Tailwind v4 · shadcn/ui (`src/components/ui/`) · lucide-react
 - **Liquid Glass** design system — frosted translucent surfaces (`.glass`,
   `.glass-strong`), teal/aqua brand mapped onto shadcn `--primary`, system SF
@@ -50,7 +52,8 @@ in its own currency.
 - `npm run dev` — dev server
 - `npm run build` — production build (proving command)
 - `npx prisma studio` — inspect the DB
-- `npx prisma db push` — sync schema to SQLite
+- `npx prisma migrate deploy` — apply committed migrations to the DB
+- `npx prisma migrate status` — show which migrations are applied
 
 ## Notes
 
