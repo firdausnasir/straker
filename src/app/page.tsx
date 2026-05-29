@@ -25,6 +25,8 @@ export default async function HomePage() {
     nextDueDate: c.nextDueDate.toISOString(),
     renewalMode: c.renewalMode as RenewalMode,
     notes: c.notes,
+    reminderEnabled: c.reminderEnabled,
+    reminderLeadDays: c.reminderLeadDays,
   }));
 
   return <Dashboard commitments={dto} />;

@@ -10,6 +10,8 @@ import {
   CYCLE_LABELS,
   CYCLES,
   TYPE_LABELS,
+  REMINDER_DEFAULT_LEAD_DAYS,
+  REMINDER_LEAD_OPTIONS,
 } from "@/lib/constants";
 import {
   Dialog,
@@ -45,6 +47,11 @@ function toAmountInput(amountMinor: number): string {
   return (amountMinor / 100).toFixed(2);
 }
 
+// Human label for a reminder lead time. 0 = the due date itself.
+function reminderLeadLabel(days: number): string {
+  return days === 0 ? "On the due date" : `${days} day${days === 1 ? "" : "s"} before`;
+}
+
 // Single form for both create and edit. Passing `commitment` switches it to
 // edit mode (PATCH the existing row); omitting it creates a new one.
 export function CommitmentDialog({
@@ -74,6 +81,10 @@ export function CommitmentDialog({
   );
   const [autoRenew, setAutoRenew] = useState(commitment?.renewalMode === "AUTO");
   const [notes, setNotes] = useState(commitment?.notes ?? "");
+  const [reminderEnabled, setReminderEnabled] = useState(commitment?.reminderEnabled ?? false);
+  const [reminderLeadDays, setReminderLeadDays] = useState(
+    commitment?.reminderLeadDays ?? REMINDER_DEFAULT_LEAD_DAYS,
+  );
   const [pending, setPending] = useState(false);
 
   async function handleSubmit(event: React.FormEvent) {
@@ -95,6 +106,8 @@ export function CommitmentDialog({
             nextDueDate: toDateInput(dueDate),
             renewalMode: autoRenew ? "AUTO" : "MANUAL",
             notes,
+            reminderEnabled,
+            reminderLeadDays,
           }),
         },
       );
@@ -150,7 +163,7 @@ export function CommitmentDialog({
               <Label>Type</Label>
               <Select value={type} onValueChange={(v) => setType(v as typeof type)}>
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>{(v) => TYPE_LABELS[v as keyof typeof TYPE_LABELS]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {COMMITMENT_TYPES.map((t) => (
@@ -166,7 +179,7 @@ export function CommitmentDialog({
               <Label>Cycle</Label>
               <Select value={cycle} onValueChange={(v) => setCycle(v as typeof cycle)}>
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>{(v) => CYCLE_LABELS[v as keyof typeof CYCLE_LABELS]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {CYCLES.map((c) => (
@@ -241,6 +254,43 @@ export function CommitmentDialog({
             </span>
             <Switch checked={autoRenew} onCheckedChange={setAutoRenew} aria-label="Auto-renew" />
           </label>
+
+          <div className="rounded-2xl bg-[var(--parchment-2)] px-4 py-3.5">
+            <label className="flex cursor-pointer items-center justify-between">
+              <span>
+                <span className="block text-sm font-semibold text-foreground">Remind me</span>
+                <span className="block text-xs text-muted-foreground">
+                  Push a reminder before it&apos;s due
+                </span>
+              </span>
+              <Switch
+                checked={reminderEnabled}
+                onCheckedChange={setReminderEnabled}
+                aria-label="Remind me before it's due"
+              />
+            </label>
+
+            {reminderEnabled && (
+              <div className="mt-4 space-y-1.5 border-t border-[var(--border)] pt-4">
+                <Label htmlFor="lead">When to remind me</Label>
+                <Select
+                  value={String(reminderLeadDays)}
+                  onValueChange={(v) => setReminderLeadDays(Number(v))}
+                >
+                  <SelectTrigger id="lead" className="w-full">
+                    <SelectValue>{(value) => reminderLeadLabel(Number(value))}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REMINDER_LEAD_OPTIONS.map((d) => (
+                      <SelectItem key={d} value={String(d)}>
+                        {reminderLeadLabel(d)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
 
           <div className="flex gap-2 pt-1">
             <Button type="button" variant="secondary" className="h-12 flex-1 rounded-full" onClick={onClose}>

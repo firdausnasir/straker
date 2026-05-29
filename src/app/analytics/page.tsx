@@ -26,6 +26,8 @@ export default async function AnalyticsPage() {
       nextDueDate: c.nextDueDate.toISOString(),
       renewalMode: c.renewalMode as never,
       notes: c.notes,
+      reminderEnabled: c.reminderEnabled,
+      reminderLeadDays: c.reminderLeadDays,
     })),
   );
 

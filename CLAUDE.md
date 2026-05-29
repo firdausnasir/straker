@@ -55,6 +55,27 @@ in its own currency.
 - `npx prisma migrate deploy` — apply committed migrations to the DB
 - `npx prisma migrate status` — show which migrations are applied
 
+## PWA + Web Push
+
+- Installable PWA: `src/app/manifest.ts` (Next metadata route) + brand icons in
+  `public/icons/` (regenerate with `node scripts/generate-icons.mjs`).
+- Service worker `public/sw.js` handles **push + notificationclick only** — no
+  fetch caching on purpose (a finance app must never show stale due dates).
+  Registered client-side by `src/components/pwa/service-worker-register.tsx`.
+- Reminders are **per-commitment** (`reminderEnabled` + `reminderLeadDays`, 1–7),
+  sent **once per due date** via the `reminderSentForDueDate` gate (re-arms when
+  the date advances). Device must be enabled in Settings → Notifications to receive.
+- Send lib: `src/lib/push.ts` (`sendPushToUser`, prunes 404/410). Endpoints are
+  bearer secrets — never log endpoint/keys/payload.
+- Secrets: `node scripts/setup-push-env.mjs` generates VAPID keys + `CRON_SECRET`
+  into `.env` (idempotent, never prints values). Required vars: `VAPID_PUBLIC_KEY`,
+  `VAPID_PRIVATE_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`, `CRON_SECRET`.
+  Replicate them on the deploy host.
+- Scheduler: `GET /api/cron/due-reminders` guarded by `Authorization: Bearer
+  $CRON_SECRET`. `vercel.json` cron runs it daily 01:00 UTC (09:00 MYT) and Vercel
+  injects the bearer automatically. Self-host: hit it from system cron —
+  `curl -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/cron/due-reminders`.
+
 ## Notes
 
 - AUTO commitments auto-advance past-due dates on dashboard load

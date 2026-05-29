@@ -12,4 +12,6 @@ export type CommitmentDTO = {
   nextDueDate: string;
   renewalMode: RenewalMode;
   notes: string | null;
+  reminderEnabled: boolean;
+  reminderLeadDays: number;
 };

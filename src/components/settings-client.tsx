@@ -3,6 +3,7 @@
 import { signOut } from "next-auth/react";
 import { Monitor, Sun, Moon, LogOut, Palette } from "lucide-react";
 import { useTheme, type ThemePref } from "./theme";
+import { NotificationsSettings } from "./pwa/notifications-settings";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +65,8 @@ export function SettingsClient({ email }: { email: string }) {
           </div>
         </div>
       </section>
+
+      <NotificationsSettings />
 
       <section className="space-y-2.5">
         <h2 className="px-1 text-[13px] font-medium text-muted-foreground">

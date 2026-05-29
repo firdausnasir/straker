@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Fraunces } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 
 // Body sans — Inter with tabular nums enabled per use site via `.tnum`.
 const inter = Inter({
@@ -22,6 +23,15 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: "Straker — Commitment Tracker",
   description: "Track subscriptions, recurring bills, and loans in MYR and USD.",
+  // Installable PWA: enable iOS standalone mode + supply the touch icon.
+  appleWebApp: {
+    capable: true,
+    title: "Straker",
+    statusBarStyle: "default",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -62,6 +72,7 @@ export default function RootLayout({
       </head>
       <body className="relative min-h-full">
         <div className="relative z-10">{children}</div>
+        <ServiceWorkerRegister />
         <Toaster position="top-center" />
       </body>
     </html>

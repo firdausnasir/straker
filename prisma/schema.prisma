@@ -15,11 +15,27 @@ datasource db {
 }
 
 model User {
-  id           String       @id @default(cuid())
-  email        String       @unique
-  passwordHash String
-  createdAt    DateTime     @default(now())
-  commitments  Commitment[]
+  id                String             @id @default(cuid())
+  email             String             @unique
+  passwordHash      String
+  createdAt         DateTime           @default(now())
+  commitments       Commitment[]
+  pushSubscriptions PushSubscription[]
+}
+
+// A browser Push API subscription for one device. The endpoint is a bearer
+// capability (whoever holds it can push to the device) — treat as a secret:
+// never log it. Pruned automatically when the push service returns 404/410.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Commitment {
@@ -41,6 +57,15 @@ model Commitment {
   renewalMode String   @default("MANUAL")
   isActive    Boolean  @default(true)
   notes       String?
+
+  // Due-date reminder opt-in (per commitment). When enabled, a daily cron
+  // pushes a reminder `reminderLeadDays` days before nextDueDate.
+  reminderEnabled  Boolean @default(false)
+  reminderLeadDays Int     @default(3)
+  // The nextDueDate a reminder was last sent for. Sending is gated on this
+  // differing from the current nextDueDate, so each due date is reminded at
+  // most once and the reminder re-arms automatically when the date advances.
+  reminderSentForDueDate DateTime?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

@@ -38,6 +38,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   if (input.renewalMode !== undefined) data.renewalMode = input.renewalMode;
   if (input.isActive !== undefined) data.isActive = input.isActive;
   if (input.notes !== undefined) data.notes = input.notes ? input.notes : null;
+  if (input.reminderEnabled !== undefined) data.reminderEnabled = input.reminderEnabled;
+  if (input.reminderLeadDays !== undefined) data.reminderLeadDays = input.reminderLeadDays;
 
   // Scope the update to the owner so one user can't touch another's rows.
   const result = await prisma.commitment.updateMany({

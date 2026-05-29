@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { commitmentInputSchema } from "@/lib/validation";
 import { toMinorUnits } from "@/lib/money";
+import { REMINDER_DEFAULT_LEAD_DAYS } from "@/lib/constants";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -36,6 +37,8 @@ export async function POST(request: Request) {
         nextDueDate: input.nextDueDate,
         renewalMode: input.renewalMode,
         notes: input.notes ? input.notes : null,
+        reminderEnabled: input.reminderEnabled ?? false,
+        reminderLeadDays: input.reminderLeadDays ?? REMINDER_DEFAULT_LEAD_DAYS,
       },
     });
 
