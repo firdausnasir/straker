@@ -14,10 +14,12 @@ Personal finance tracker — subscriptions, recurring bills, loans. Multi-curren
   (`DATABASE_URL`, port 6543, `?pgbouncer=true`); migrations use the **session
   pooler** (`DIRECT_URL`, port 5432) — DDL can't run through pgbouncer.
 - Tailwind v4 · shadcn/ui (`src/components/ui/`) · lucide-react
-- **Liquid Glass** design system — frosted translucent surfaces (`.glass`,
-  `.glass-strong`), teal/aqua brand mapped onto shadcn `--primary`, system SF
-  font. Light + dark mode toggled by a `.dark` class on `<html>` (no-flash
-  inline script in `layout.tsx`; `useTheme` via `useSyncExternalStore` reads it).
+- **Earthy Soft** design system — warm sand page, parchment cards lifting on
+  soft umber-tinted shadows, generous rounded corners, single terracotta (clay)
+  accent mapped onto shadcn `--primary`. Display type Fraunces, body Inter (both
+  `next/font/google`). Light + dark mode toggled by a `.dark` class on `<html>`
+  (no-flash inline script in `layout.tsx`; `useTheme` via `useSyncExternalStore`
+  reads it).
 - Auth: **NextAuth (Auth.js v5)**, Credentials provider, JWT sessions.
   `src/auth.ts` (full, Prisma + bcrypt via `src/lib/password.ts`) + edge-safe
   `src/auth.config.ts` (shared with the proxy). Registration is at
@@ -27,7 +29,7 @@ Personal finance tracker — subscriptions, recurring bills, loans. Multi-curren
   self-check via `auth()`; the create route catches Prisma P2003 (token valid
   but user gone) → 401, and the client signs out on 401.
 - Pages: `/` Subs · `/analytics` (monthly-normalized totals per currency) ·
-  `/settings` · `/login`. Bottom glass tab dock (`src/components/tab-bar.tsx`),
+  `/settings` · `/login`. Bottom pill tab dock (`src/components/tab-bar.tsx`),
   full-width on mobile. Mobile-first: ≥44px tap targets across primitives.
 - Theme follows device by default (`system`), live via `matchMedia`; override
   to light/dark in Settings. `useTheme` (`src/components/theme.tsx`).
@@ -72,13 +74,19 @@ in its own currency.
   into `.env` (idempotent, never prints values). Required vars: `VAPID_PUBLIC_KEY`,
   `VAPID_PRIVATE_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`, `CRON_SECRET`.
   Replicate them on the deploy host.
-- Scheduler: `GET /api/cron/due-reminders` guarded by `Authorization: Bearer
-  $CRON_SECRET`. `vercel.json` cron runs it daily 01:00 UTC (09:00 MYT) and Vercel
-  injects the bearer automatically. Self-host: hit it from system cron —
-  `curl -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/cron/due-reminders`.
+- Schedulers: **two** cron routes, both guarded by `Authorization: Bearer
+  $CRON_SECRET` (Vercel injects the bearer automatically; NOT behind user auth):
+  - `GET /api/cron/advance-cycles` — rolls lapsed AUTO commitments forward
+    (`advanceLapsedAutoCommitments`, all users). `vercel.json` runs it daily
+    16:10 UTC (00:10 MYT). This is the **only** place AUTO dates advance.
+  - `GET /api/cron/due-reminders` — sends due reminders. Runs daily 01:00 UTC
+    (09:00 MYT) — after advance-cycles in the MYT day, so it scans fresh dates.
+  - Self-host: hit both from system cron, e.g.
+    `curl -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/cron/advance-cycles`.
 
 ## Notes
 
-- AUTO commitments auto-advance past-due dates on dashboard load
-  (`getActiveCommitments`). MANUAL ones advance only via the renew action.
+- AUTO commitments advance only via the `advance-cycles` cron (see above);
+  reads (`getActiveCommitments`) never write. With no cron running, AUTO due
+  dates stay frozen in the past. MANUAL ones advance only via the renew action.
 - `AUTH_SECRET` must be ≥ 32 chars or auth flows throw at startup.

@@ -3,6 +3,10 @@
   "buildCommand": "prisma generate && prisma migrate deploy && next build",
   "crons": [
     {
+      "path": "/api/cron/advance-cycles",
+      "schedule": "10 16 * * *"
+    },
+    {
       "path": "/api/cron/due-reminders",
       "schedule": "0 1 * * *"
     }

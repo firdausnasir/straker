@@ -5,14 +5,16 @@ import { advanceToFuture } from "./cycle";
 import type { Cycle } from "./constants";
 import { REMINDER_MAX_LEAD_DAYS } from "./constants";
 
-// AUTO commitments roll forward on their own. When the dashboard loads we
-// catch up any whose due date has lapsed, so the user only ever sees future
-// dates for them. MANUAL commitments are left untouched — the user advances
-// those explicitly via the renew action.
-async function autoRenewLapsed(userId: string, now: Date): Promise<void> {
+// Roll every lapsed AUTO commitment forward to its next future due date, across
+// all users. Run by the daily cron (before the reminder scan) — NOT on read, so
+// dashboard/analytics stay a single query. MANUAL commitments are left untouched;
+// the user advances those explicitly via the renew action.
+//
+// Trade-off: AUTO due dates only advance when the cron fires. With no cron
+// running they stay frozen in the past — see CLAUDE.md (PWA + Web Push).
+export async function advanceLapsedAutoCommitments(now: Date): Promise<number> {
   const lapsed = await prisma.commitment.findMany({
     where: {
-      userId,
       isActive: true,
       renewalMode: "AUTO",
       nextDueDate: { lte: now },
@@ -20,7 +22,7 @@ async function autoRenewLapsed(userId: string, now: Date): Promise<void> {
   });
 
   if (lapsed.length === 0) {
-    return;
+    return 0;
   }
 
   await prisma.$transaction(
@@ -31,13 +33,13 @@ async function autoRenewLapsed(userId: string, now: Date): Promise<void> {
       }),
     ),
   );
+
+  return lapsed.length;
 }
 
-// Active commitments for a user, sorted by soonest due date first.
+// Active commitments for a user, sorted by soonest due date first. Pure read —
+// AUTO advancement happens in the cron (advanceLapsedAutoCommitments).
 export async function getActiveCommitments(userId: string): Promise<Commitment[]> {
-  const now = new Date();
-  await autoRenewLapsed(userId, now);
-
   return prisma.commitment.findMany({
     where: { userId, isActive: true },
     orderBy: { nextDueDate: "asc" },

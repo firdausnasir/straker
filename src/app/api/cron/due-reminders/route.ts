@@ -18,6 +18,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // AUTO cycle advancement runs in its own earlier cron (advance-cycles, 00:10
+  // MYT), so by the time this reminder scan runs (09:00 MYT) due dates are fresh.
   const now = new Date();
   const candidates = await getCommitmentsDueForReminder(now);
 
@@ -37,9 +39,12 @@ export async function GET(request: Request) {
     }
 
     const amount = formatMoney(c.amountMinor, c.currency as Currency);
+    // "Today" / "Tomorrow" / "In 3 days"; dueLabel covers the past-due case
+    // (MANUAL commitments don't auto-advance, so they can be late here).
+    const timing = days === 0 ? "Today" : days === 1 ? "Tomorrow" : days > 1 ? `In ${days} days` : dueLabel(c.nextDueDate, now);
     const delivered = await sendPushToUser(c.userId, {
-      title: "Upcoming commitment",
-      body: `${c.name} — due ${dueLabel(c.nextDueDate, now).toLowerCase()} (${amount})`,
+      title: `Due soon — ${c.name}`,
+      body: `${timing} (${amount})`,
       url: "/",
       tag: `due-${c.id}`,
     });

@@ -11,14 +11,15 @@ due-date push reminders.
 - Email + password auth (bcrypt hashes, JWT session in an httpOnly cookie)
 - Commitments: subscriptions, recurring bills, loans, other
 - Weekly / monthly / quarterly / yearly cycles
-- **Auto-renew** — past-due dates roll forward on dashboard load
+- **Auto-renew** — past-due dates roll forward daily via the advance-cycles cron
 - **Manual** — you advance it yourself when paid
 - MYR + USD, stored as integer minor units (never float)
 - Dashboard sorted by due date / amount / name, with overdue & due-soon coding
 - Quick-add dialog, analytics (monthly-normalized totals per currency), settings
 - **Installable PWA** with **Web Push** due-date reminders — per-commitment,
   opt-in, configurable lead time (0–7 days), sent once per due date
-- **Liquid Glass UI** on shadcn/ui, with light + dark mode (follows device)
+- **Earthy Soft UI** on shadcn/ui — warm sand + parchment, terracotta accent,
+  Fraunces/Inter type, with light + dark mode (follows device)
 
 ## Getting started
 
@@ -52,12 +53,21 @@ node scripts/setup-push-env.mjs
 ```
 
 This sets `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
-`VAPID_SUBJECT`, and `CRON_SECRET`. The scheduler endpoint
-`GET /api/cron/due-reminders` is guarded by `Authorization: Bearer $CRON_SECRET`.
-On Vercel, `vercel.json` runs it daily at 01:00 UTC (09:00 MYT) and injects the
-bearer automatically. Self-host: hit it from system cron —
+`VAPID_SUBJECT`, and `CRON_SECRET`. Two scheduler endpoints, both guarded by
+`Authorization: Bearer $CRON_SECRET`:
+
+- `GET /api/cron/advance-cycles` — rolls lapsed auto-renew commitments forward
+  (the only place auto dates advance). `vercel.json` runs it daily 16:10 UTC
+  (00:10 MYT).
+- `GET /api/cron/due-reminders` — sends due-date push reminders. Runs daily
+  01:00 UTC (09:00 MYT), after advance-cycles in the MYT day so it scans fresh
+  dates.
+
+On Vercel the bearer is injected automatically. Self-host: hit both from system
+cron —
 
 ```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/cron/advance-cycles
 curl -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/cron/due-reminders
 ```
 
