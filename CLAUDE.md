@@ -62,8 +62,9 @@ in its own currency.
 - Service worker `public/sw.js` handles **push + notificationclick only** — no
   fetch caching on purpose (a finance app must never show stale due dates).
   Registered client-side by `src/components/pwa/service-worker-register.tsx`.
-- Reminders are **per-commitment** (`reminderEnabled` + `reminderLeadDays`, 1–7),
-  sent **once per due date** via the `reminderSentForDueDate` gate (re-arms when
+- Reminders are **per-commitment** (`reminderEnabled` + `reminderLeadDays`, 0–7;
+  0 = remind on the due date itself), sent **once per due date** via the
+  `reminderSentForDueDate` gate (re-arms when
   the date advances). Device must be enabled in Settings → Notifications to receive.
 - Send lib: `src/lib/push.ts` (`sendPushToUser`, prunes 404/410). Endpoints are
   bearer secrets — never log endpoint/keys/payload.
