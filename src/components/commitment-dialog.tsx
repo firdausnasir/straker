@@ -271,13 +271,12 @@ export function CommitmentDialog({
             </label>
 
             {reminderEnabled && (
-              <div className="mt-4 space-y-1.5 border-t border-[var(--border)] pt-4">
-                <Label htmlFor="lead">When to remind me</Label>
+              <div className="mt-4 border-t border-[var(--border)] pt-4">
                 <Select
                   value={String(reminderLeadDays)}
                   onValueChange={(v) => setReminderLeadDays(Number(v))}
                 >
-                  <SelectTrigger id="lead" className="w-full">
+                  <SelectTrigger id="lead" aria-label="When to remind me" className="w-full">
                     <SelectValue>{(value) => reminderLeadLabel(Number(value))}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
