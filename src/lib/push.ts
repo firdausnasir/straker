@@ -22,6 +22,22 @@ export type PushDeliveryResult = {
 
 let configured = false;
 
+// Apple's APNs strictly validates the VAPID `sub` claim: a mailto: address
+// wrapped in angle brackets or padded with a space (e.g. "mailto: <a@b.com>",
+// the git-author shape that's easy to paste into an env var) is rejected with
+// 403 BadJwtToken. FCM accepts it, so the bug surfaces as "Android works, iOS
+// doesn't". Normalize to the bare "mailto:addr" Apple requires.
+function normalizeVapidSubject(subject: string): string {
+  const trimmed = subject.trim();
+  if (!trimmed.startsWith("mailto:")) {
+    return trimmed;
+  }
+
+  const address = trimmed.slice("mailto:".length).trim().replace(/^<|>$/g, "").trim();
+
+  return `mailto:${address}`;
+}
+
 // Configure web-push once, lazily, so a missing key fails at send time with a
 // clear message rather than crashing module import across the whole app.
 function ensureConfigured(): void {
@@ -36,7 +52,7 @@ function ensureConfigured(): void {
     );
   }
 
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  webpush.setVapidDetails(normalizeVapidSubject(VAPID_SUBJECT), VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
   configured = true;
 }
 
