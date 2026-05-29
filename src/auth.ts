@@ -8,7 +8,8 @@ import { credentialsSchema } from "@/lib/validation";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   // Credentials requires JWT sessions (no DB session row to look up).
-  session: { strategy: "jwt" },
+  // maxAge ~100 years so the session only ends when the user signs out.
+  session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 365 * 100 },
   providers: [
     Credentials({
       credentials: { email: {}, password: {} },
