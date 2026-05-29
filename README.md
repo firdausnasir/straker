@@ -2,13 +2,17 @@
 
 Track subscriptions, recurring bills, and loans in one quiet ledger. Multi-currency
 (MYR + USD, no exchange — each amount is exact in its own currency), with auto- or
-manual-renewing cycles. Sign in, see everything sorted by what's due next, and
-add a commitment in a couple of taps. Installable as a PWA with optional
-due-date push reminders.
+manual-renewing cycles. Sign in with a password or a passkey, see everything
+sorted by what's due next, and add a commitment in a couple of taps. Installable
+as a PWA with optional due-date push reminders.
 
 ## Features
 
 - Email + password auth (bcrypt hashes, JWT session in an httpOnly cookie)
+- **Passkey sign-in** (WebAuthn / Face ID, Touch ID, Windows Hello, security
+  keys) — one passkey per account, with password kept as a fallback. Add, renew,
+  and delete all re-prove the password; setup offers a guessed device name to
+  confirm. Manage it in Settings.
 - Commitments: subscriptions, recurring bills, loans, other
 - Weekly / monthly / quarterly / yearly cycles
 - **Auto-renew** — past-due dates roll forward daily via the advance-cycles cron
@@ -80,9 +84,12 @@ curl -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/cron/due-reminde
 - `npm run lint` — ESLint
 - `npx prisma studio` — inspect the database
 - `node tests/smoke.mjs` — Playwright end-to-end smoke test (run a server first)
+- `node tests/passkey-smoke.mjs` — passkey lifecycle e2e via a CDP virtual
+  authenticator: add → name → renew → sign in (run a server first)
 
 ## Stack
 
 Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Prisma + PostgreSQL
-(Supabase) · NextAuth (Auth.js v5) · Tailwind v4 · shadcn/ui · web-push.
+(Supabase) · NextAuth (Auth.js v5) · @simplewebauthn (passkeys) · Tailwind v4 ·
+shadcn/ui · web-push.
 See [CLAUDE.md](./CLAUDE.md) for architecture and conventions.

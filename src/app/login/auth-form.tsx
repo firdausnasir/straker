@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { KeyRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { isPasskeySupported, isPasskeyCancellation, loginWithPasskey } from "@/lib/passkey-client";
 
 type Mode = "login" | "register";
 
@@ -16,6 +18,41 @@ export function AuthForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // Resolved client-side to avoid an SSR/CSR mismatch on the passkey button.
+  const [passkeySupported, setPasskeySupported] = useState(false);
+  const [passkeyPending, setPasskeyPending] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    // Deferred into a microtask so the set isn't synchronous in the effect body
+    // (and resolved client-side to avoid an SSR/CSR hydration mismatch).
+    Promise.resolve().then(() => {
+      if (active) setPasskeySupported(isPasskeySupported());
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handlePasskeyLogin() {
+    setError(null);
+    setPasskeyPending(true);
+
+    try {
+      await loginWithPasskey();
+      router.push("/");
+      router.refresh();
+    } catch (err) {
+      // User dismissed the native prompt — not an error worth showing.
+      if (!isPasskeyCancellation(err)) {
+        setError(err instanceof Error ? err.message : "Passkey sign-in failed.");
+      }
+    } finally {
+      setPasskeyPending(false);
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -114,6 +151,27 @@ export function AuthForm() {
       >
         {pending ? "One moment…" : isLogin ? "Sign in" : "Create account"}
       </Button>
+
+      {isLogin && passkeySupported && (
+        <>
+          <div className="my-5 flex items-center gap-3">
+            <span className="h-px flex-1 bg-border" />
+            <span className="text-xs font-medium text-muted-foreground">or</span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            disabled={passkeyPending}
+            onClick={handlePasskeyLogin}
+            className="h-12 w-full justify-center gap-2 rounded-full text-[15px] font-semibold"
+          >
+            <KeyRound className="h-[18px] w-[18px]" />
+            {passkeyPending ? "One moment…" : "Sign in with a passkey"}
+          </Button>
+        </>
+      )}
 
       <p className="mt-5 text-center text-sm text-muted-foreground">
         {isLogin ? "No account yet?" : "Already have an account?"}{" "}

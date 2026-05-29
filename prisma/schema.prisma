@@ -21,6 +21,28 @@ model User {
   createdAt         DateTime           @default(now())
   commitments       Commitment[]
   pushSubscriptions PushSubscription[]
+  // At most one passkey per account (see Credential.userId @unique).
+  credential        Credential?
+}
+
+// A WebAuthn passkey. One per user — adding/renewing replaces the single row.
+// `publicKey` is the COSE public key; `counter` guards against cloned-key
+// replay (uint32, so BigInt — it can exceed Postgres int4). The credentialId
+// is the authenticator's opaque handle (base64url) and is a bearer lookup key
+// for sign-in — never log it.
+model Credential {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId String    @unique
+  publicKey    Bytes
+  counter      BigInt    @default(0)
+  // Comma-joined AuthenticatorTransportFuture hints (e.g. "internal,hybrid").
+  transports   String?
+  // User-facing label, editable in Settings.
+  deviceName   String
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
 }
 
 // A browser Push API subscription for one device. The endpoint is a bearer

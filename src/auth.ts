@@ -4,6 +4,7 @@ import { authConfig } from "./auth.config";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
 import { credentialsSchema } from "@/lib/validation";
+import { verifyPasskeyToken } from "@/lib/passkey-token";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -29,6 +30,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const valid = await verifyPassword(password, user?.passwordHash ?? dummy);
 
         if (!user || !valid) {
+          return null;
+        }
+
+        return { id: user.id, email: user.email };
+      },
+    }),
+    // Passkey bridge: the WebAuthn assertion is verified in our own API route
+    // (src/app/api/passkey/login/verify), which mints a short-lived signed
+    // token. We only re-verify that token here and load the user — no password,
+    // no WebAuthn logic in Auth.js.
+    Credentials({
+      id: "passkey",
+      name: "Passkey",
+      credentials: { token: {} },
+      async authorize(raw) {
+        const token = typeof raw?.token === "string" ? raw.token : null;
+
+        if (!token) {
+          return null;
+        }
+
+        const userId = await verifyPasskeyToken(token);
+
+        if (!userId) {
+          return null;
+        }
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+
+        if (!user) {
           return null;
         }
 

@@ -28,6 +28,21 @@ Personal finance tracker — subscriptions, recurring bills, loans. Multi-curren
   `authorized` callback — optimistic redirect to `/login`. API routes also
   self-check via `auth()`; the create route catches Prisma P2003 (token valid
   but user gone) → 401, and the client signs out on 401.
+- Passkeys (WebAuthn, `@simplewebauthn` v9 — pinned to match next-auth's
+  optional peer): **one passkey per account** (`Credential`, `userId @unique`).
+  Custom flow bridged into a second `passkey` Credentials provider — NOT
+  next-auth's experimental webauthn provider, so the JWT-only model + no DB
+  adapter stay intact. Verify routes mint a 60s signed token
+  (`src/lib/passkey-token.ts`); the client exchanges it via `signIn("passkey")`.
+  Challenges live in a signed, httpOnly 5-min cookie (`src/lib/webauthn.ts`);
+  RP ID + origin are derived from the request `Origin` header (no env var).
+  Routes: `register/options|verify` (authed + password), `login/options|verify`
+  (public), `credential` GET/PATCH/DELETE. **Add/renew/delete re-prove the
+  password** (the session JWT is ~permanent); rename does not. Add + renew share
+  one flow: password → ceremony → a modal that pre-fills a *guessed* device name
+  (`guessPasskeyName`, from transports + UA) for the user to confirm/edit.
+  Never log the `credentialId` or public key. UI: button on `/login`,
+  management in Settings (`src/components/passkey-settings.tsx`).
 - Pages: `/` Subs · `/analytics` (monthly-normalized totals per currency) ·
   `/settings` · `/login`. Bottom pill tab dock (`src/components/tab-bar.tsx`),
   full-width on mobile. Mobile-first: ≥44px tap targets across primitives.
@@ -89,4 +104,5 @@ in its own currency.
 - AUTO commitments advance only via the `advance-cycles` cron (see above);
   reads (`getActiveCommitments`) never write. With no cron running, AUTO due
   dates stay frozen in the past. MANUAL ones advance only via the renew action.
-- `AUTH_SECRET` must be ≥ 32 chars or auth flows throw at startup.
+- `AUTH_SECRET` must be ≥ 32 chars or auth flows throw at startup. It also signs
+  the passkey challenge cookies + the 60s passkey login token.

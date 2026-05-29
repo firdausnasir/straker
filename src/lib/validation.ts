@@ -57,3 +57,22 @@ export const pushSubscriptionSchema = z.object({
 });
 
 export type PushSubscriptionInput = z.infer<typeof pushSubscriptionSchema>;
+
+// Re-authentication for sensitive passkey actions (add/renew/delete). Just a
+// presence check — the value is compared against the stored hash, not stored.
+export const passwordReauthSchema = z.object({
+  password: z.string().min(1, "Password is required"),
+});
+
+// Renaming a passkey's display label (no password needed).
+export const passkeyLabelSchema = z.object({
+  deviceName: z.string().trim().min(1, "Name is required").max(60),
+});
+
+// The register/verify envelope. The WebAuthn `response` itself is validated
+// cryptographically by @simplewebauthn (which would silently lose attestation
+// data if run through a key-stripping zod schema), so it is read raw in the
+// route — here we only parse the optional user-supplied label.
+export const passkeyRegisterVerifySchema = z.object({
+  deviceName: z.string().trim().min(1).max(60).optional(),
+});
