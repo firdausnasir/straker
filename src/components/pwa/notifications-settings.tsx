@@ -105,13 +105,24 @@ export function NotificationsSettings() {
         void signOut({ redirectTo: "/login" });
         return;
       }
+      const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
         toast.error(data.error ?? "Couldn't send the test.");
         return;
       }
 
-      toast.success("Test notification sent");
+      // Surface the push service's per-device response. A rejected push (e.g.
+      // 403 = VAPID key mismatch) otherwise looks identical to a delivered one.
+      const devices: { host: string; statusCode?: number; ok: boolean }[] = data.devices ?? [];
+      const failed = devices.filter((d) => !d.ok);
+
+      if (failed.length > 0) {
+        const detail = failed.map((d) => `${d.host} (${d.statusCode ?? "no status"})`).join(", ");
+        toast.error(`Push rejected by ${detail}`);
+      } else {
+        toast.success(`Test sent to ${devices.length} device${devices.length === 1 ? "" : "s"}`);
+      }
     } catch {
       toast.error("Network error. Try again.");
     } finally {

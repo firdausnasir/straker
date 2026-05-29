@@ -12,6 +12,14 @@ export type PushPayload = {
   tag?: string;
 };
 
+// Per-device outcome for diagnostics. `host` is the push-service host only
+// (e.g. web.push.apple.com) — never the full endpoint, which is a bearer secret.
+export type PushDeliveryResult = {
+  host: string;
+  statusCode?: number;
+  ok: boolean;
+};
+
 let configured = false;
 
 // Configure web-push once, lazily, so a missing key fails at send time with a
@@ -32,9 +40,38 @@ function ensureConfigured(): void {
   configured = true;
 }
 
-// Send a notification to every device a user has registered. Subscriptions the
-// push service reports as gone (404/410) are pruned. Returns how many devices
-// actually accepted the push.
+// Deliver one payload to one subscription and report the push service's status.
+// 404/410 = the subscription is permanently gone, so prune it; other failures
+// (transient 5xx, signature 403, etc.) are reported but left for the next run.
+async function deliver(
+  sub: { endpoint: string; p256dh: string; auth: string },
+  body: string,
+): Promise<PushDeliveryResult> {
+  const host = new URL(sub.endpoint).host;
+
+  try {
+    const res = await webpush.sendNotification(
+      { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+      body,
+    );
+
+    return { host, statusCode: res.statusCode, ok: true };
+  } catch (error) {
+    const statusCode =
+      error && typeof error === "object" && "statusCode" in error
+        ? (error as { statusCode?: number }).statusCode
+        : undefined;
+
+    if (statusCode === 404 || statusCode === 410) {
+      await prisma.pushSubscription.deleteMany({ where: { endpoint: sub.endpoint } });
+    }
+
+    return { host, statusCode, ok: false };
+  }
+}
+
+// Send a notification to every device a user has registered. Returns how many
+// devices actually accepted the push.
 export async function sendPushToUser(userId: string, payload: PushPayload): Promise<number> {
   ensureConfigured();
 
@@ -44,30 +81,22 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
   }
 
   const body = JSON.stringify(payload);
-  let delivered = 0;
+  const results = await Promise.all(subscriptions.map((sub) => deliver(sub, body)));
 
-  await Promise.all(
-    subscriptions.map(async (sub) => {
-      try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          body,
-        );
-        delivered += 1;
-      } catch (error) {
-        const statusCode =
-          error && typeof error === "object" && "statusCode" in error
-            ? (error as { statusCode?: number }).statusCode
-            : undefined;
+  return results.filter((r) => r.ok).length;
+}
 
-        // 404/410 = the subscription is permanently gone. Drop it so we stop
-        // trying. Other errors (e.g. transient 5xx) are left for the next run.
-        if (statusCode === 404 || statusCode === 410) {
-          await prisma.pushSubscription.deleteMany({ where: { endpoint: sub.endpoint } });
-        }
-      }
-    }),
-  );
+// Same delivery, but returns the per-device outcome (host + status code) so the
+// test endpoint can show exactly how the push service responded. Diagnostics
+// only — the scheduled sender uses sendPushToUser.
+export async function sendPushDiagnostic(
+  userId: string,
+  payload: PushPayload,
+): Promise<PushDeliveryResult[]> {
+  ensureConfigured();
 
-  return delivered;
+  const subscriptions = await prisma.pushSubscription.findMany({ where: { userId } });
+  const body = JSON.stringify(payload);
+
+  return Promise.all(subscriptions.map((sub) => deliver(sub, body)));
 }
