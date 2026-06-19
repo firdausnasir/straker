@@ -1,17 +1,15 @@
 // Commitment tracker — personal finance commitments (subscriptions, recurring, loans).
-// PostgreSQL (works locally and on Vercel/serverless). Enums are stored as
-// strings and validated at the boundary with zod (see src/lib/validation.ts).
+// SQLite — a single file DB (single-user, local; Blast Radius B1). Enums are
+// stored as strings and validated at the boundary with zod (see src/lib/validation.ts).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  // Pooled connection for serverless runtime (e.g. Neon pooler / PgBouncer).
-  url       = env("DATABASE_URL")
-  // Direct connection for migrations (`prisma migrate deploy`).
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  // File-backed DB, e.g. file:./dev.db locally or an absolute path in Docker.
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -27,7 +25,7 @@ model User {
 
 // A WebAuthn passkey. One per user — adding/renewing replaces the single row.
 // `publicKey` is the COSE public key; `counter` guards against cloned-key
-// replay (uint32, so BigInt — it can exceed Postgres int4). The credentialId
+// replay (a uint32 from the authenticator, held as BigInt). The credentialId
 // is the authenticator's opaque handle (base64url) and is a bearer lookup key
 // for sign-in — never log it.
 model Credential {

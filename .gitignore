@@ -37,9 +37,16 @@ yarn-error.log*
 .env.staging
 .env.prod
 
-# local sqlite leftovers (the project uses Postgres now)
+# SQLite DB + WAL sidecars (D4 data — never commit). Lives in ./data, bind-mounted into Docker.
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
+
+# Postgres / mysqldump artifacts (D4 data). The one-time importer that read
+# these was removed; keep the pattern so a re-dump never sneaks into a commit.
+*.sql
+!prisma/migrations/**/*.sql
 
 # playwright test artifacts
 /tests/*.png
