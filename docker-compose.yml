@@ -1,0 +1,54 @@
+# Single local/self-host stack in PRODUCTION mode. The web container builds the
+# app (`prisma generate && next build`) and runs `next start` — fast, no HMR.
+# Code changes require a rebuild; dev hot-reload is gone on purpose.
+# Both services restart automatically unless you stop them manually.
+#
+#   cp .env.example .env            # set AUTH_SECRET (>=32 chars); push vars optional
+#   docker compose up -d --build    # app on http://localhost:${WEB_PORT:-3001}
+#
+# After changing source or package.json, rebuild to pick it up:
+#   docker compose up -d --build
+#
+# The SQLite DB is bind-mounted from the host ./data dir to /app/data, so the
+# single app.db file lives on the host machine (shared with local dev). No
+# source bind mount — only the data dir is shared; the image is self-contained.
+#
+# AUTH_SECRET / VAPID_* / CRON_SECRET come from .env (env_file below).
+# DATABASE_URL is overridden here to the in-container SQLite file.
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      # SQLite file on the persistent volume mounted at /app/data.
+      DATABASE_URL: file:/app/data/app.db
+      # Public origin Auth.js uses to build login/callback URLs. REQUIRED behind
+      # a reverse proxy (e.g. https://commit.firdausnasir.cc), otherwise the
+      # callbackUrl falls back to the container's internal localhost:3000. Set
+      # AUTH_URL in .env or the shell; empty = use the request host.
+      AUTH_URL: ${AUTH_URL:-}
+    volumes:
+      # Bind-mount the host DB dir — the same data/app.db used by local dev.
+      - ./data:/app/data
+    ports:
+      - "${WEB_PORT:-3001}:3000"
+
+  cron:
+    build:
+      context: ./docker/cron
+    restart: unless-stopped
+    depends_on:
+      - web
+    # Only the bearer is needed here — do NOT env_file the whole .env, which
+    # would load unrelated secrets into a container that never uses them.
+    environment:
+      CRON_TARGET: http://web:3000
+      CRON_SECRET: ${CRON_SECRET:-}

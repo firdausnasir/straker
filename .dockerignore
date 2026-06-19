@@ -1,0 +1,27 @@
+# Keep the build context lean and keep secrets out of the image.
+node_modules
+.next
+out
+build
+.git
+.gitignore
+
+# Never bake env files into the image — runtime env comes from compose.
+.env
+.env.*
+
+# Local artifacts / tooling
+.vercel
+coverage
+tests/*.png
+*.tsbuildinfo
+npm-debug.log*
+.DS_Store
+
+# Docker + docs aren't needed inside the image.
+# NOTE: docker/entrypoint.sh IS copied by the web image, so the docker/ dir
+# is intentionally not ignored here.
+Dockerfile
+.dockerignore
+docker-compose.yml
+README.md
