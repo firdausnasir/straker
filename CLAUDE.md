@@ -10,9 +10,9 @@ Personal finance tracker — subscriptions, recurring bills, loans. Multi-curren
 ## Stack
 
 - Next.js 16 (App Router, Turbopack) · React 19 · TypeScript
-- Prisma + PostgreSQL (Supabase). Runtime uses the **transaction pooler**
-  (`DATABASE_URL`, port 6543, `?pgbouncer=true`); migrations use the **session
-  pooler** (`DIRECT_URL`, port 5432) — DDL can't run through pgbouncer.
+- Prisma + **SQLite** — a single file DB (`DATABASE_URL=file:...`; relative
+  paths resolve against `prisma/`). No DB server, no connection pooler, no
+  `DIRECT_URL`. Single-user/local (Blast Radius B1).
 - Tailwind v4 · shadcn/ui (`src/components/ui/`) · lucide-react
 - **Earthy Soft** design system — warm sand page, parchment cards lifting on
   soft umber-tinted shadows, generous rounded corners, single terracotta (clay)
@@ -24,6 +24,11 @@ Personal finance tracker — subscriptions, recurring bills, loans. Multi-curren
   `src/auth.ts` (full, Prisma + bcrypt via `src/lib/password.ts`) + edge-safe
   `src/auth.config.ts` (shared with the proxy). Registration is at
   `/api/register` (Auth.js owns `/api/auth/*`). `trustHost: true` for self-host.
+  Behind a reverse proxy, **set `AUTH_URL` to the public origin**: the proxy
+  middleware builds the login `callbackUrl` from `reqWithEnvURL`, which only
+  honors `AUTH_URL`/`NEXTAUTH_URL` (NOT `X-Forwarded-Host`/`trustHost`), so
+  without it the callback falls back to the container's internal
+  `localhost:3000`.
 - Route protection: `src/proxy.ts` (Next 16 middleware) runs Auth.js's
   `authorized` callback — optimistic redirect to `/login`. API routes also
   self-check via `auth()`; the create route catches Prisma P2003 (token valid

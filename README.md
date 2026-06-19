@@ -27,12 +27,12 @@ as a PWA with optional due-date push reminders.
 
 ## Getting started
 
-This app runs on PostgreSQL (Supabase in production; any Postgres works locally).
+This app runs on SQLite — a single local file, no database server to run.
 
 ```bash
 npm install
 cp .env.example .env        # then fill in the vars below
-npm run db:deploy           # apply migrations to the database
+npm run db:deploy           # apply migrations to the database file
 npm run dev                 # http://localhost:3000
 ```
 
@@ -42,10 +42,13 @@ npm run dev                 # http://localhost:3000
   ```bash
   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
   ```
-- `DATABASE_URL` — pooled connection used at runtime (Supabase transaction
-  pooler, port `6543`, `?pgbouncer=true`).
-- `DIRECT_URL` — direct connection used for migrations (Supabase session
-  pooler, port `5432`). DDL can't run through pgbouncer.
+- `DATABASE_URL` — SQLite file URL. Relative paths resolve against the
+  `prisma/` directory, e.g. `file:./dev.db` for local development.
+- `AUTH_URL` — public origin of the app, e.g. `https://commit.firdausnasir.cc`.
+  **Required behind a reverse proxy**: Auth.js builds login/`callbackUrl` from
+  the request host, which a proxy reports as the internal `localhost:3000`, so
+  without `AUTH_URL` the callback points at localhost. Leave it unset for direct
+  local access (it then uses the request host).
 
 ### Push reminders (optional)
 
@@ -75,6 +78,40 @@ curl -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/cron/advance-cyc
 curl -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/cron/due-reminders
 ```
 
+## Run with Docker
+
+A single self-contained stack with **live reload**: the web container runs
+`next dev` over a bind-mounted source (edits reflect immediately, no rebuild),
+plus a scheduler replicating the two `vercel.json` crons. Both services restart
+automatically unless you stop them manually (`restart: unless-stopped`).
+
+```bash
+cp .env.example .env        # set AUTH_SECRET (>=32 chars); push vars optional
+docker compose up -d --build
+# app on http://localhost:3001
+```
+
+- **Port** — host port is `WEB_PORT` (default `3001`), e.g. `WEB_PORT=8080 docker compose up -d`.
+- **Live reload** — source is bind-mounted; just save a file and refresh.
+  `node_modules` and `.next` live in named volumes (the host may be macOS, whose
+  `node_modules` carries the wrong Linux/Prisma binaries — never bind-mount it
+  in). File watching uses polling (`WATCHPACK_POLLING`/`CHOKIDAR_USEPOLLING`)
+  since macOS bind mounts drop inotify events. After changing `package.json`,
+  rebuild and recreate the volumes: `docker compose up -d --build -V`.
+- **Database** — SQLite file at `/app/data/app.db` inside the web container,
+  persisted on the `sqlite-data` volume. compose sets `DATABASE_URL` to it,
+  overriding any value in `.env`. Migrations (`prisma migrate deploy`) run
+  automatically on web container start.
+- **Behind a reverse proxy** — set `AUTH_URL` to the public origin (e.g.
+  `AUTH_URL=https://your.domain docker compose up -d`, or add it to `.env`).
+  Otherwise the login `callbackUrl` falls back to the container's
+  `localhost:3000`. compose forwards `AUTH_URL` to the web container.
+- **Crons** — the `cron` service curls `advance-cycles` (16:10 UTC) and
+  `due-reminders` (01:00 UTC) with the `CRON_SECRET` bearer, same schedules as
+  Vercel. Push reminders also need the `VAPID_*` vars in `.env`.
+- Logs: `docker compose logs -f web`. Stop: `docker compose down` (add `-v` to
+  wipe the database volume).
+
 ## Commands
 
 - `npm run dev` — dev server
@@ -89,7 +126,7 @@ curl -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/cron/due-reminde
 
 ## Stack
 
-Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Prisma + PostgreSQL
-(Supabase) · NextAuth (Auth.js v5) · @simplewebauthn (passkeys) · Tailwind v4 ·
+Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Prisma + SQLite ·
+NextAuth (Auth.js v5) · @simplewebauthn (passkeys) · Tailwind v4 ·
 shadcn/ui · web-push.
 See [CLAUDE.md](./CLAUDE.md) for architecture and conventions.
