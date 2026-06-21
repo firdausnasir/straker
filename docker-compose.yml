@@ -1,13 +1,13 @@
-# Single local/self-host stack in PRODUCTION mode. The web container builds the
-# app (`prisma generate && next build`) and runs `next start` — fast, no HMR.
-# Code changes require a rebuild; dev hot-reload is gone on purpose.
-# Both services restart automatically unless you stop them manually.
+# Single local/self-host stack in PRODUCTION mode. The web container pulls a
+# prebuilt GHCR image and runs the standalone Next.js server — no build work on
+# the deploy host. Both services restart automatically unless stopped manually.
 #
 #   cp .env.example .env            # set AUTH_SECRET (>=32 chars); push vars optional
-#   docker compose up -d --build    # app on http://localhost:${WEB_PORT:-3001}
+#   docker compose pull
+#   docker compose up -d            # app on http://localhost:${WEB_PORT:-3001}
 #
-# After changing source or package.json, rebuild to pick it up:
-#   docker compose up -d --build
+# After merging to main, GitHub Actions publishes a new image. Pull it:
+#   docker compose pull web && docker compose up -d web
 #
 # The SQLite DB is bind-mounted from the host ./data dir to /app/data, so the
 # single app.db file lives on the host machine (shared with local dev). No
@@ -18,10 +18,7 @@
 
 services:
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: runner
+    image: ghcr.io/firdausnasir/straker:latest
     restart: unless-stopped
     env_file:
       - .env

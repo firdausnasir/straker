@@ -8,4 +8,4 @@ echo "[entrypoint] Applying database migrations..."
 node_modules/.bin/prisma migrate deploy
 
 echo "[entrypoint] Starting Next.js on port ${PORT:-3000}..."
-exec node_modules/.bin/next start -p "${PORT:-3000}"
+exec node server.js
