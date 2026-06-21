@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
-# Production image for the Next.js 16 app. Mirrors the Vercel build
-# (`prisma generate && next build`); migrations run at container start
-# (see docker/entrypoint.sh), matching Vercel's build-time `migrate deploy`.
+# Production image for the Next.js 16 app. CI builds this once and low-spec
+# deploy hosts only pull/run it. Migrations still run at container start against
+# the host-mounted SQLite DB (see docker/entrypoint.sh).
 
 # ---- Base: Node + OpenSSL (Prisma's query engine links against libssl) ----
 FROM node:22-bookworm-slim AS base
@@ -18,7 +18,14 @@ COPY package.json package-lock.json ./
 # prisma/schema.prisma must exist before `npm ci`: the postinstall hook
 # runs `prisma generate`.
 COPY prisma ./prisma
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
+
+# ---- Migration toolchain ----
+FROM base AS migration-deps
+# The standalone server carries traced app dependencies. Startup migrations only
+# need the Prisma CLI and engines, so avoid copying every production dependency.
+RUN --mount=type=cache,target=/root/.npm \
+  npm install --omit=dev --ignore-scripts --no-audit --no-fund --no-save prisma@6.19.3
 
 # ---- Build ----
 FROM base AS builder
@@ -30,13 +37,14 @@ RUN npm run build
 # ---- Runtime ----
 FROM base AS runner
 ENV NODE_ENV=production
-# Full (non-standalone) runtime: `next start` + the Prisma CLI for migrations.
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
+# Standalone runtime: traced Next server + minimal migration deps for Prisma
+# migrations. This avoids shipping the full dev toolchain to small devices.
+COPY --from=migration-deps /app/node_modules ./node_modules
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/next.config.ts ./next.config.ts
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 # Data dir for the SQLite file — owned by `node` so a fresh named volume
 # mounted here inherits node ownership and stays writable.
