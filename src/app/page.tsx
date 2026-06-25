@@ -48,5 +48,5 @@ export default async function HomePage() {
       : null,
   }));
 
-  return <Dashboard commitments={dto} />;
+  return <Dashboard commitments={dto} email={session.user.email ?? undefined} />;
 }

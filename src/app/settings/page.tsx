@@ -17,7 +17,7 @@ export default async function SettingsPage() {
         <AppHeader title="Settings" />
         <SettingsClient email={session.user.email ?? ""} />
       </div>
-      <TabBar />
+      <TabBar email={session.user.email ?? undefined} />
     </div>
   );
 }

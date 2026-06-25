@@ -2,28 +2,43 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, ArrowUpDown, WalletCards } from "lucide-react";
+import {
+  Plus,
+  ArrowUpDown,
+  WalletCards,
+  Search,
+  X,
+  ListFilter,
+  ChevronDown,
+} from "lucide-react";
 import type { CommitmentDTO } from "@/lib/types";
+import { COMMITMENT_TYPES, TYPE_LABELS, type CommitmentType } from "@/lib/constants";
+import { urgencyOf } from "@/lib/dates";
 import { CommitmentCard } from "./commitment-card";
 import { CommitmentDialog } from "./commitment-dialog";
+import { SummaryHeader } from "./summary-header";
 import { TabBar } from "./tab-bar";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 type SortMode = "due" | "amount" | "name";
 
-// Sentinel filter values that aren't real account IDs. "all" shows everything;
-// "unassigned" matches commitments with no linked card.
-const ACCOUNT_ALL = "all";
-const ACCOUNT_UNASSIGNED = "unassigned";
+// Sentinel account key for commitments with no linked card. Real account ids fill
+// the rest of the multi-select set; an empty set means "all accounts".
+const ACCOUNT_UNASSIGNED = "__unassigned__";
 
 const SORT_LABEL: Record<SortMode, string> = {
   due: "Due date",
@@ -33,14 +48,58 @@ const SORT_LABEL: Record<SortMode, string> = {
 
 const SORT_ORDER: SortMode[] = ["due", "amount", "name"];
 
-export function Dashboard({ commitments }: { commitments: CommitmentDTO[] }) {
+// Three visible urgency groups, in fixed display order. Collapses urgencyOf's
+// soon (≤3d) + upcoming (≤14d) into one "Due soon" bucket; overdue and later
+// map straight through. No new thresholds — see src/lib/dates.ts.
+type GroupKey = "overdue" | "soon" | "later";
+const GROUP_ORDER: GroupKey[] = ["overdue", "soon", "later"];
+const GROUP_LABEL: Record<GroupKey, string> = {
+  overdue: "Overdue",
+  soon: "Due soon",
+  later: "Later",
+};
+
+function groupKeyOf(date: Date): GroupKey {
+  const u = urgencyOf(date);
+
+  if (u === "overdue") return "overdue";
+  if (u === "soon" || u === "upcoming") return "soon";
+
+  return "later";
+}
+
+function sortComparator(mode: SortMode): (a: CommitmentDTO, b: CommitmentDTO) => number {
+  if (mode === "amount") {
+    // Highest first, within currency-agnostic minor units.
+    return (a, b) => b.amountMinor - a.amountMinor;
+  }
+  if (mode === "name") {
+    return (a, b) => a.name.localeCompare(b.name);
+  }
+
+  return (a, b) => a.nextDueDate.localeCompare(b.nextDueDate);
+}
+
+export function Dashboard({
+  commitments,
+  email,
+}: {
+  commitments: CommitmentDTO[];
+  email?: string;
+}) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [sort, setSort] = useState<SortMode>("due");
-  const [account, setAccount] = useState<string>(ACCOUNT_ALL);
+  const [query, setQuery] = useState("");
+  // Filters are collapsed by default — not used on every visit. The header
+  // toggle reveals them; a badge keeps active filters visible while collapsed.
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  // Multi-select facets. Empty array = no constraint (show all) for that facet.
+  const [types, setTypes] = useState<CommitmentType[]>([]);
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
 
   // Distinct accounts present across the linked cards, ordered by name. Drives
-  // the filter pills; an empty list hides the control entirely.
+  // the account multi-select; an empty list hides that control entirely.
   const accounts = useMemo(() => {
     const byId = new Map<string, string>();
 
@@ -55,47 +114,65 @@ export function Dashboard({ commitments }: { commitments: CommitmentDTO[] }) {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [commitments]);
 
-  // Presentation-only account filter applied before sorting. "all" passes
-  // everything; "unassigned" keeps card-less commitments; otherwise match the
-  // selected account id.
+  function toggleType(t: CommitmentType) {
+    setTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
+  }
+
+  function toggleAccount(id: string) {
+    setSelectedAccounts((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
+  // Presentation-only pipeline: search → type → account. Each facet is OR within
+  // itself (any selected matches); facets are AND across each other. Runs on
+  // trusted DTOs.
   const filtered = useMemo(() => {
-    if (account === ACCOUNT_ALL) {
-      return commitments;
-    }
-    if (account === ACCOUNT_UNASSIGNED) {
-      return commitments.filter((c) => c.card == null);
+    const q = query.trim().toLowerCase();
+
+    return commitments.filter((c) => {
+      if (q) {
+        const haystack = `${c.name} ${c.notes ?? ""}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      if (types.length > 0 && !types.includes(c.type)) return false;
+      if (selectedAccounts.length > 0) {
+        const key = c.card?.accountId ?? ACCOUNT_UNASSIGNED;
+        if (!selectedAccounts.includes(key)) return false;
+      }
+
+      return true;
+    });
+  }, [commitments, query, types, selectedAccounts]);
+
+  // Bucket the filtered list by urgency, then sort each bucket independently by
+  // the active sort mode (sort is applied AFTER grouping).
+  const groups = useMemo(() => {
+    const buckets: Record<GroupKey, CommitmentDTO[]> = { overdue: [], soon: [], later: [] };
+
+    for (const c of filtered) {
+      buckets[groupKeyOf(new Date(c.nextDueDate))].push(c);
     }
 
-    return commitments.filter((c) => c.card?.accountId === account);
-  }, [commitments, account]);
+    const cmp = sortComparator(sort);
 
-  const sorted = useMemo(() => {
-    const copy = [...filtered];
-
-    if (sort === "due") {
-      return copy.sort((a, b) => a.nextDueDate.localeCompare(b.nextDueDate));
-    }
-    if (sort === "amount") {
-      // Compare within currency-agnostic minor units; highest first.
-      return copy.sort((a, b) => b.amountMinor - a.amountMinor);
-    }
-
-    return copy.sort((a, b) => a.name.localeCompare(b.name));
+    return GROUP_ORDER.map((key) => ({ key, items: [...buckets[key]].sort(cmp) })).filter(
+      (g) => g.items.length > 0,
+    );
   }, [filtered, sort]);
 
-  const count = sorted.length;
+  const count = filtered.length;
+  const searching = query.trim().length > 0;
+  // Number of active facets, for the collapsed-state badge (max 3).
+  const activeFilterCount =
+    (searching ? 1 : 0) + (types.length > 0 ? 1 : 0) + (selectedAccounts.length > 0 ? 1 : 0);
 
   return (
     // Shell offset: mobile clears the 56px top nav bar; desktop clears the
-    // 240px left rail. Bottom padding keeps the last ruled row clear of the
-    // viewport edge.
+    // 240px left rail. Bottom padding keeps the last row clear of the dock.
     <div className="min-h-dvh pb-24 md:pb-16 md:pl-[var(--rail-w)] md:transition-[padding] md:duration-200 md:ease-[cubic-bezier(0.2,0,0,1)]">
       <div className="mx-auto max-w-2xl px-4 sm:px-6">
-        {/* In-flow statement header. Title (display face) on the left, the
-            primary actions kept inline on the right so they sit within the
-            content column on every breakpoint — no fixed overlay colliding
-            with the mobile top bar. */}
-        <header className="animate-reveal flex items-end justify-between gap-4 pt-7 pb-5">
+        <header className="animate-reveal flex items-end justify-between gap-4 pt-7 pb-3">
           <div className="min-w-0">
             <h1 className="font-display text-balance text-[2rem] leading-none text-foreground">
               Subscriptions
@@ -106,6 +183,30 @@ export function Dashboard({ commitments }: { commitments: CommitmentDTO[] }) {
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
+            {commitments.length > 0 && (
+              <button
+                onClick={() => setFiltersOpen((v) => !v)}
+                aria-label={
+                  activeFilterCount > 0 ? `Filters, ${activeFilterCount} active` : "Filters"
+                }
+                aria-expanded={filtersOpen}
+                aria-controls="filter-panel"
+                className={cn(
+                  "relative grid size-11 place-items-center rounded-xl border text-foreground shadow-[var(--shadow-card)] transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.96]",
+                  filtersOpen
+                    ? "border-primary/30 bg-primary/10 text-primary"
+                    : "border-border bg-card hover:bg-muted",
+                )}
+              >
+                <ListFilter className="size-[18px]" strokeWidth={2} />
+                {activeFilterCount > 0 && (
+                  <span className="tnum absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+            )}
+
             <DropdownMenu>
               <DropdownMenuTrigger
                 aria-label="Sort"
@@ -138,66 +239,178 @@ export function Dashboard({ commitments }: { commitments: CommitmentDTO[] }) {
           </div>
         </header>
 
-        {/* Account filter — only shown once at least one commitment is linked to
-            an account, so it stays out of the way for users who don't use cards. */}
-        {accounts.length > 0 && (
-          <div className="-mx-4 mb-2 overflow-x-auto px-4 sm:-mx-6 sm:px-6">
-            <div className="flex w-max gap-2 pb-1">
-              <FilterPill
-                label="All accounts"
-                active={account === ACCOUNT_ALL}
-                onClick={() => setAccount(ACCOUNT_ALL)}
-              />
-              {accounts.map((a) => (
-                <FilterPill
-                  key={a.id}
-                  label={a.name}
-                  active={account === a.id}
-                  onClick={() => setAccount(a.id)}
-                />
-              ))}
-              <FilterPill
-                label="Unassigned"
-                active={account === ACCOUNT_UNASSIGNED}
-                onClick={() => setAccount(ACCOUNT_UNASSIGNED)}
-              />
-            </div>
-          </div>
-        )}
-
         {commitments.length === 0 ? (
           <EmptyState onAdd={() => setAdding(true)} />
-        ) : count > 0 ? (
-          // Card-per-item list — each commitment is its own filled, elevated
-          // card with breathing room between them (modern-fintech stack), not a
-          // hairline-ruled ledger. Reveal staggers down the list on mount.
-          <ul className="mt-2 space-y-3">
-            {sorted.map((c, i) => (
-              <li
-                key={c.id}
-                className="animate-reveal"
-                style={{ animationDelay: `${i * 60}ms` }}
-              >
-                <CommitmentCard commitment={c} />
-              </li>
-            ))}
-          </ul>
         ) : (
-          // Commitments exist but the active account filter matches none — a
-          // distinct state from the genuine zero-commitments empty state.
-          <div className="surface mt-2 px-6 py-14 text-center">
-            <p className="font-display text-lg text-foreground">
-              Nothing in this account
-            </p>
-            <p className="mx-auto mt-2 max-w-xs text-pretty text-[13px] leading-relaxed text-muted-foreground">
-              No commitments are linked here. Pick another account above to see
-              the rest.
-            </p>
-          </div>
+          <>
+            <SummaryHeader commitments={commitments} />
+
+            {/* Collapsible controls — mounted only when open so the resting list
+                stays compact. Search, then multi-select type chips, then the
+                account multi-select. */}
+            {filtersOpen && (
+              <div id="filter-panel" className="animate-reveal mt-4 space-y-3">
+                <div className="relative">
+                  <Search
+                    aria-hidden
+                    className="pointer-events-none absolute left-3.5 top-1/2 size-[18px] -translate-y-1/2 text-muted-foreground"
+                  />
+                  <Input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search name or notes…"
+                    aria-label="Search commitments"
+                    className="h-11 pl-11 pr-11"
+                  />
+                  {searching && (
+                    <button
+                      type="button"
+                      onClick={() => setQuery("")}
+                      aria-label="Clear search"
+                      className="absolute right-0.5 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.96]"
+                    >
+                      <X className="size-[18px]" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="-mx-4 overflow-x-auto px-4 sm:-mx-6 sm:px-6">
+                  <div className="flex w-max items-center gap-2 pb-1">
+                    <FilterPill
+                      label="All types"
+                      active={types.length === 0}
+                      onClick={() => setTypes([])}
+                    />
+                    {COMMITMENT_TYPES.map((t) => (
+                      <FilterPill
+                        key={t}
+                        label={TYPE_LABELS[t]}
+                        active={types.includes(t)}
+                        onClick={() => toggleType(t)}
+                      />
+                    ))}
+
+                    {accounts.length > 0 && (
+                      <>
+                        <span aria-hidden className="mx-1 h-6 w-px shrink-0 bg-border" />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            aria-label="Filter by account"
+                            className={cn(
+                              "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-[13px] font-medium",
+                              "whitespace-nowrap transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.96]",
+                              selectedAccounts.length > 0
+                                ? "bg-primary text-primary-foreground shadow-[var(--shadow-card)]"
+                                : "border border-border bg-card text-muted-foreground shadow-[var(--shadow-card)] hover:bg-muted hover:text-foreground",
+                            )}
+                          >
+                            Accounts
+                            {selectedAccounts.length > 0 && (
+                              <span className="tnum">({selectedAccounts.length})</span>
+                            )}
+                            <ChevronDown className="size-3.5 opacity-70" strokeWidth={2.4} />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-56">
+                            {/* GroupLabel must live inside a Group (Base UI). */}
+                            <DropdownMenuGroup>
+                              <DropdownMenuLabel>Filter by account</DropdownMenuLabel>
+                              {accounts.map((a) => (
+                                <DropdownMenuCheckboxItem
+                                  key={a.id}
+                                  checked={selectedAccounts.includes(a.id)}
+                                  onCheckedChange={() => toggleAccount(a.id)}
+                                >
+                                  {a.name}
+                                </DropdownMenuCheckboxItem>
+                              ))}
+                              <DropdownMenuCheckboxItem
+                                checked={selectedAccounts.includes(ACCOUNT_UNASSIGNED)}
+                                onCheckedChange={() => toggleAccount(ACCOUNT_UNASSIGNED)}
+                              >
+                                Unassigned
+                              </DropdownMenuCheckboxItem>
+                            </DropdownMenuGroup>
+                            {selectedAccounts.length > 0 && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => setSelectedAccounts([])}>
+                                  Clear accounts
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {count > 0 ? (
+              // Urgency-grouped sections. Each section: a header with its count,
+              // then the compact rows. Empty buckets render nothing. Reveal stagger
+              // resets per group so delays stay short on long lists.
+              <div className="mt-5 space-y-7">
+                {groups.map((group) => (
+                  <section key={group.key}>
+                    <div className="mb-2 flex items-baseline gap-2 px-1">
+                      <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                        {GROUP_LABEL[group.key]}
+                      </h2>
+                      <span className="tnum text-[12px] text-muted-foreground/70">
+                        {group.items.length}
+                      </span>
+                    </div>
+                    <ul className="space-y-2">
+                      {group.items.map((c, i) => (
+                        <li
+                          key={c.id}
+                          className="animate-reveal"
+                          style={{ animationDelay: `${i * 45}ms` }}
+                        >
+                          <CommitmentCard commitment={c} />
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ))}
+              </div>
+            ) : searching ? (
+              // Search yielded nothing — offer a one-tap way back.
+              <div className="surface mt-5 px-6 py-14 text-center">
+                <p className="font-display text-lg text-foreground">
+                  No results for “{query.trim()}”
+                </p>
+                <p className="mx-auto mt-2 max-w-xs text-pretty text-[13px] leading-relaxed text-muted-foreground">
+                  Nothing matches that search in your names or notes.
+                </p>
+                <Button
+                  variant="secondary"
+                  onClick={() => setQuery("")}
+                  className="mx-auto mt-6 rounded-lg active:scale-[0.96]"
+                >
+                  Clear search
+                </Button>
+              </div>
+            ) : (
+              // Type/account filters matched none.
+              <div className="surface mt-5 px-6 py-14 text-center">
+                <p className="font-display text-lg text-foreground">
+                  No matches for these filters
+                </p>
+                <p className="mx-auto mt-2 max-w-xs text-pretty text-[13px] leading-relaxed text-muted-foreground">
+                  Nothing here fits the current type or account. Adjust the filters
+                  above to see the rest.
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      <TabBar />
+      <TabBar email={email} />
 
       {adding && (
         <CommitmentDialog
@@ -212,9 +425,8 @@ export function Dashboard({ commitments }: { commitments: CommitmentDTO[] }) {
   );
 }
 
-// Single account-filter chip. ≥44px tap target (min-h-11). Active = filled
-// cobalt with a soft lift; resting = filled card surface with the resting
-// elevation, matching the new card system.
+// Single filter chip. ≥44px tap target (min-h-11). Active = filled accent with a
+// soft lift; resting = filled card surface with the resting elevation.
 function FilterPill({
   label,
   active,

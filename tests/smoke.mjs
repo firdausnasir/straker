@@ -89,10 +89,20 @@ try {
   ]);
   log(`✓ POST linked commitment -> ${linkResp.status()}`);
 
-  // Card link is shown in the (always-visible) meta of the commitment card.
+  // Card link now lives in the expandable detail (compact rows) — open the row.
   await page.waitForSelector("text=Linked Sub", { timeout: 8000 });
+  await page.getByRole("button", { name: /Linked Sub/ }).first().click();
   await page.waitForSelector("text=·4242", { timeout: 8000 });
   log("✓ linked commitment shows account/card on the card");
+
+  // --- open the collapsed filter panel + account multi-select (must not crash;
+  //     the page.on('pageerror') listener catches Base UI context throws) ---
+  await page.getByRole("button", { name: "Filters", exact: false }).first().click();
+  await page.getByRole("button", { name: "Filter by account" }).click();
+  await page.waitForSelector("text=Filter by account", { timeout: 5000 });
+  await page.getByRole("menuitemcheckbox", { name: "Maybank" }).click();
+  await page.keyboard.press("Escape");
+  log("✓ filter panel + account multi-select opened (no crash)");
 
   // --- delete the card → commitment must survive, unlinked (US8) ---
   await page.goto(`${BASE}/accounts`, { waitUntil: "networkidle" });
@@ -103,6 +113,8 @@ try {
 
   await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
   await page.waitForSelector("text=Linked Sub", { timeout: 8000 });
+  // Expand the row so the card-link detail would be visible if it still existed.
+  await page.getByRole("button", { name: /Linked Sub/ }).first().click();
   if ((await page.locator("text=·4242").count()) !== 0) {
     throw new Error("card link still shown after card delete — SetNull failed");
   }
