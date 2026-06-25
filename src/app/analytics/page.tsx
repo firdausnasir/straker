@@ -208,7 +208,7 @@ export default async function AnalyticsPage() {
         )}
       </div>
 
-      <TabBar />
+      <TabBar email={session.user.email ?? undefined} />
     </div>
   );
 }

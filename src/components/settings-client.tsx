@@ -21,13 +21,35 @@ export function SettingsClient({ email }: { email: string }) {
     void signOut({ redirectTo: "/login" });
   }
 
+  const initial = (email[0] ?? "?").toUpperCase();
+
   return (
     <div className="mt-3 space-y-8">
+      {/* Identity leads — who you are, with the same gradient initial chip the
+          desktop rail footer uses, so the two read as one account surface. */}
+      <section className="space-y-3">
+        <h2 className="font-display px-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          Account
+        </h2>
+        <div className="surface flex items-center gap-3 px-5 py-5 animate-reveal" style={{ animationDelay: "60ms" }}>
+          <span
+            aria-hidden
+            className="grid size-11 shrink-0 place-items-center rounded-xl bg-[image:var(--gradient-accent)] text-base font-semibold text-white shadow-[var(--shadow-card)]"
+          >
+            {initial}
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[13px] text-muted-foreground">Signed in as</span>
+            <span className="mt-0.5 block truncate text-[15px] font-semibold text-foreground">{email}</span>
+          </span>
+        </div>
+      </section>
+
       <section className="space-y-3">
         <h2 className="font-display px-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           Appearance
         </h2>
-        <div className="surface px-5 py-5 animate-reveal" style={{ animationDelay: "60ms" }}>
+        <div className="surface px-5 py-5 animate-reveal" style={{ animationDelay: "120ms" }}>
           <div className="flex items-center gap-3">
             <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
               <Palette className="h-5 w-5" />
@@ -71,23 +93,16 @@ export function SettingsClient({ email }: { email: string }) {
 
       <PasskeySettings />
 
-      <section className="space-y-3">
-        <h2 className="font-display px-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-          Account
-        </h2>
-        <div className="surface px-5 py-5 animate-reveal" style={{ animationDelay: "240ms" }}>
-          <p className="text-[13px] text-muted-foreground">Signed in as</p>
-          <p className="mt-0.5 truncate text-[15px] font-semibold text-foreground">{email}</p>
-        </div>
-        <Button
-          variant="destructive"
-          onClick={handleLogout}
-          className="h-12 w-full justify-center gap-2 rounded-xl text-[15px] font-semibold active:scale-[0.96]"
-        >
-          <LogOut className="h-[18px] w-[18px]" />
-          Sign out
-        </Button>
-      </section>
+      {/* Destructive action trails — spatially separated from identity, last in
+          the page so it's never the first thing a thumb lands on. */}
+      <Button
+        variant="destructive"
+        onClick={handleLogout}
+        className="h-12 w-full justify-center gap-2 rounded-xl text-[15px] font-semibold active:scale-[0.96]"
+      >
+        <LogOut className="h-[18px] w-[18px]" />
+        Sign out
+      </Button>
     </div>
   );
 }

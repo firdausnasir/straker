@@ -48,7 +48,7 @@ export default async function AccountsPage() {
         <AccountsManager initialAccounts={dtos} />
       </div>
 
-      <TabBar />
+      <TabBar email={session.user.email ?? undefined} />
     </div>
   );
 }
