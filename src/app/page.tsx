@@ -2,7 +2,13 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getActiveCommitments } from "@/lib/commitments";
 import type { CommitmentDTO } from "@/lib/types";
-import type { CommitmentType, Currency, Cycle, RenewalMode } from "@/lib/constants";
+import type {
+  CardNetwork,
+  CommitmentType,
+  Currency,
+  Cycle,
+  RenewalMode,
+} from "@/lib/constants";
 import { Dashboard } from "@/components/dashboard";
 
 export default async function HomePage() {
@@ -27,6 +33,19 @@ export default async function HomePage() {
     notes: c.notes,
     reminderEnabled: c.reminderEnabled,
     reminderLeadDays: c.reminderLeadDays,
+    cardId: c.cardId,
+    // Flatten the eager-loaded card → account into the compact DTO summary
+    // the dashboard filter + card UI consume without a second fetch.
+    card: c.card
+      ? {
+          id: c.card.id,
+          label: c.card.label,
+          last4: c.card.last4,
+          network: c.card.network as CardNetwork | null,
+          accountId: c.card.accountId,
+          accountName: c.card.account.name,
+        }
+      : null,
   }));
 
   return <Dashboard commitments={dto} />;

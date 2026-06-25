@@ -131,18 +131,20 @@ export function NotificationsSettings() {
   }
 
   return (
-    <section className="space-y-2.5">
-      <h2 className="px-1 text-[13px] font-medium text-muted-foreground">Notifications</h2>
-      <div className="surface px-5 py-5">
+    <section className="space-y-3">
+      <h2 className="font-display px-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+        Notifications
+      </h2>
+      <div className="surface px-5 py-5 animate-reveal" style={{ animationDelay: "120ms" }}>
         <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-full bg-[var(--clay-tint)] text-primary">
-            <Bell className="h-[18px] w-[18px]" />
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
+            <Bell className="h-5 w-5" />
           </span>
           <span className="flex-1">
             <span className="block text-[15px] font-semibold text-foreground">
               Due-date reminders
             </span>
-            <span className="block text-[13px] text-muted-foreground">
+            <span className="block text-[13px] text-muted-foreground text-pretty">
               {supported === false
                 ? "This browser doesn't support push notifications"
                 : "Get a push before a commitment is due"}
@@ -161,7 +163,7 @@ export function NotificationsSettings() {
             variant="secondary"
             onClick={handleTest}
             disabled={busy}
-            className="mt-5 h-11 w-full justify-center gap-2 rounded-full text-[14px]"
+            className="mt-5 h-11 w-full justify-center gap-2 rounded-xl text-[14px] active:scale-[0.96]"
           >
             <Send className="h-4 w-4" />
             Send a test notification

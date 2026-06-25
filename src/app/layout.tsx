@@ -1,22 +1,24 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Fraunces } from "next/font/google";
+import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 
-// Body sans — Inter with tabular nums enabled per use site via `.tnum`.
-const inter = Inter({
+// System face — IBM Plex Sans. Carries both body and headings (hierarchy via
+// weight). Data-grade, trustworthy. Tabular nums enabled per use site via `.tnum`.
+const ibmPlexSans = IBM_Plex_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-body",
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-// Display serif — Fraunces. Light weights only; used for page titles.
-// `opsz` axis lets the renderer pick the optical size for the rendered px.
-const fraunces = Fraunces({
+// Hero numerals — IBM Plex Mono. The running total + big balance figures
+// (`.font-num`). Mono keeps money columns aligned — a precise-ledger feel.
+const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
-  variable: "--font-fraunces",
-  axes: ["opsz"],
+  variable: "--font-mono-face",
+  weight: ["500", "600"],
   display: "swap",
 });
 
@@ -36,8 +38,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4efe6" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1612" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f8fb" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1120" },
   ],
 };
 
@@ -54,6 +56,10 @@ const themeScript = `
     }
     apply();
     mq.addEventListener('change', apply);
+    // Sidebar collapse — applied pre-paint so the rail width + content offset
+    // (both read --rail-w) never flash on load.
+    document.documentElement.dataset.rail =
+      localStorage.getItem('rail') === 'collapsed' ? 'collapsed' : 'expanded';
   } catch (e) {}
 })();
 `;
@@ -64,7 +70,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`h-full ${inter.variable} ${fraunces.variable}`}
+      className={`h-full ${ibmPlexSans.variable} ${ibmPlexMono.variable}`}
       suppressHydrationWarning
     >
       <head>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { KeyRound } from "lucide-react";
+import { AlertCircle, KeyRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -98,12 +98,17 @@ export function AuthForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="surface-float animate-rise mt-9 p-7"
-      style={{ animationDelay: "80ms" }}
+      className="surface animate-reveal mt-9 p-7"
+      style={{ animationDelay: "180ms" }}
     >
-      <h2 className="text-xl font-semibold tracking-tight text-foreground">
+      <h2 className="font-display text-xl tracking-tight text-foreground">
         {isLogin ? "Welcome back" : "Create account"}
       </h2>
+      <p className="mt-1.5 text-sm text-muted-foreground">
+        {isLogin
+          ? "Sign in to pick up where your ledger left off."
+          : "Start tracking what you owe and what renews."}
+      </p>
 
       <div className="mt-6 space-y-4">
         <div className="space-y-1.5">
@@ -138,16 +143,21 @@ export function AuthForm() {
       </div>
 
       {error && (
-        <p className="mt-4 rounded-xl bg-[var(--danger-tint)] px-3 py-2 text-sm text-[var(--danger)]">
-          {error}
+        <p
+          role="alert"
+          className="mt-4 flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm font-medium text-destructive"
+        >
+          <AlertCircle className="mt-px h-4 w-4 shrink-0" />
+          <span>{error}</span>
         </p>
       )}
 
+      {/* Primary CTA carries the restrained cobalt→cyan brand gradient. */}
       <Button
         type="submit"
         disabled={pending}
-        className="mt-6 h-12 w-full rounded-full text-[15px] font-semibold"
-        style={{ boxShadow: "var(--shadow-cta)" }}
+        className="mt-6 h-12 w-full border-0 text-[15px] font-semibold text-primary-foreground shadow-sm active:scale-[0.96] disabled:opacity-70"
+        style={{ backgroundImage: "var(--gradient-accent)" }}
       >
         {pending ? "One moment…" : isLogin ? "Sign in" : "Create account"}
       </Button>
@@ -156,7 +166,9 @@ export function AuthForm() {
         <>
           <div className="my-5 flex items-center gap-3">
             <span className="h-px flex-1 bg-border" />
-            <span className="text-xs font-medium text-muted-foreground">or</span>
+            <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              or
+            </span>
             <span className="h-px flex-1 bg-border" />
           </div>
 
@@ -165,7 +177,7 @@ export function AuthForm() {
             variant="outline"
             disabled={passkeyPending}
             onClick={handlePasskeyLogin}
-            className="h-12 w-full justify-center gap-2 rounded-full text-[15px] font-semibold"
+            className="h-12 w-full justify-center gap-2 text-[15px] font-semibold active:scale-[0.96]"
           >
             <KeyRound className="h-[18px] w-[18px]" />
             {passkeyPending ? "One moment…" : "Sign in with a passkey"}
@@ -173,7 +185,7 @@ export function AuthForm() {
         </>
       )}
 
-      <p className="mt-5 text-center text-sm text-muted-foreground">
+      <p className="mt-6 border-t border-border pt-5 text-center text-sm text-muted-foreground">
         {isLogin ? "No account yet?" : "Already have an account?"}{" "}
         <button
           type="button"
@@ -181,7 +193,7 @@ export function AuthForm() {
             setMode(isLogin ? "register" : "login");
             setError(null);
           }}
-          className="font-semibold text-primary underline-offset-4 hover:underline"
+          className="rounded-md px-1 py-0.5 font-semibold text-primary underline-offset-4 outline-none transition-colors hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           {isLogin ? "Create one" : "Sign in"}
         </button>

@@ -6,6 +6,8 @@ import {
   RENEWAL_MODES,
   REMINDER_MIN_LEAD_DAYS,
   REMINDER_MAX_LEAD_DAYS,
+  ACCOUNT_TYPES,
+  CARD_NETWORKS,
 } from "./constants";
 
 // All external input is parsed here so internal logic works on trusted state.
@@ -37,6 +39,10 @@ export const commitmentInputSchema = z.object({
     .min(REMINDER_MIN_LEAD_DAYS)
     .max(REMINDER_MAX_LEAD_DAYS)
     .optional(),
+  // Optional link to a card. Ownership of the card is checked in the route
+  // against the session user — never trusted from the body alone. `null`
+  // clears the link.
+  cardId: z.cuid().nullable().optional(),
 });
 
 export type CommitmentInput = z.infer<typeof commitmentInputSchema>;
@@ -45,6 +51,32 @@ export type CommitmentInput = z.infer<typeof commitmentInputSchema>;
 export const commitmentUpdateSchema = commitmentInputSchema.partial().extend({
   isActive: z.boolean().optional(),
 });
+
+// Payment accounts + cards. Card schema deliberately omits PAN/CVV/expiry —
+// only a display label, optional last-4 (exactly 4 digits), optional network.
+export const accountInputSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(60),
+  type: z.enum(ACCOUNT_TYPES),
+});
+
+export type AccountInput = z.infer<typeof accountInputSchema>;
+
+export const accountUpdateSchema = accountInputSchema.partial();
+
+export const cardInputSchema = z.object({
+  label: z.string().trim().min(1, "Label is required").max(60),
+  // Absent last4 may arrive as null (cleared in the UI) or "" — both mean
+  // "no last4". A present value must be exactly 4 digits.
+  last4: z
+    .union([z.string().regex(/^\d{4}$/, "Last 4 must be exactly 4 digits"), z.literal(""), z.null()])
+    .optional(),
+  // Absent network arrives as null from the picker's "No network" option.
+  network: z.enum(CARD_NETWORKS).nullable().optional(),
+});
+
+export type CardInput = z.infer<typeof cardInputSchema>;
+
+export const cardUpdateSchema = cardInputSchema.partial();
 
 // Browser PushSubscription as serialized by `subscription.toJSON()`. Only the
 // fields we persist are validated; extra keys are ignored.
