@@ -170,18 +170,20 @@ export function PasskeySettings() {
   const isDelete = reauth === "delete";
 
   return (
-    <section className="space-y-2.5">
-      <h2 className="px-1 text-[13px] font-medium text-muted-foreground">Passkey</h2>
-      <div className="surface px-5 py-5">
+    <section className="space-y-3">
+      <h2 className="font-display px-1 text-[13px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+        Passkey
+      </h2>
+      <div className="surface px-5 py-5 animate-reveal" style={{ animationDelay: "180ms" }}>
         <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-full bg-[var(--clay-tint)] text-primary">
-            <KeyRound className="h-[18px] w-[18px]" />
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
+            <KeyRound className="h-5 w-5" />
           </span>
           <span className="flex-1">
             <span className="block text-[15px] font-semibold text-foreground">
               {passkey ? passkey.deviceName : "Passkey"}
             </span>
-            <span className="block text-[13px] text-muted-foreground">
+            <span className="block text-[13px] text-muted-foreground text-pretty">
               {loading
                 ? "Checking…"
                 : passkey
@@ -199,8 +201,7 @@ export function PasskeySettings() {
           <Button
             onClick={() => openReauth("add")}
             disabled={supported !== true}
-            className="mt-5 h-11 w-full justify-center gap-2 rounded-full text-[14px] font-semibold"
-            style={{ boxShadow: "var(--shadow-cta)" }}
+            className="mt-5 h-11 w-full justify-center gap-2 rounded-xl text-[14px] font-semibold active:scale-[0.96]"
           >
             <Plus className="h-4 w-4" />
             Add a passkey
@@ -216,7 +217,7 @@ export function PasskeySettings() {
                 setRenameIsGuess(false);
                 setRenaming(true);
               }}
-              className="h-11 justify-center gap-1.5 rounded-full text-[13px]"
+              className="h-11 justify-center gap-1.5 rounded-xl text-[13px] active:scale-[0.96]"
             >
               <Pencil className="h-4 w-4" />
               Rename
@@ -225,15 +226,15 @@ export function PasskeySettings() {
               variant="secondary"
               onClick={() => openReauth("renew")}
               disabled={supported !== true}
-              className="h-11 justify-center gap-1.5 rounded-full text-[13px]"
+              className="h-11 justify-center gap-1.5 rounded-xl text-[13px] active:scale-[0.96]"
             >
               <RefreshCw className="h-4 w-4" />
               Renew
             </Button>
             <Button
-              variant="secondary"
+              variant="destructive"
               onClick={() => openReauth("delete")}
-              className="h-11 justify-center gap-1.5 rounded-full text-[13px] text-[var(--danger)] hover:bg-[var(--danger-tint)] hover:text-[var(--danger)]"
+              className="h-11 justify-center gap-1.5 rounded-xl text-[13px] active:scale-[0.96]"
             >
               <Trash2 className="h-4 w-4" />
               Delete
@@ -273,7 +274,7 @@ export function PasskeySettings() {
             <Button
               type="submit"
               disabled={busy || password.length === 0}
-              className="h-11 w-full justify-center rounded-full text-[14px] font-semibold"
+              className="h-11 w-full justify-center rounded-xl text-[14px] font-semibold active:scale-[0.96]"
               variant={isDelete ? "destructive" : "default"}
             >
               {busy ? "One moment…" : reauthCopy?.confirm}
@@ -311,7 +312,7 @@ export function PasskeySettings() {
             <Button
               type="submit"
               disabled={busy || renameValue.trim().length === 0}
-              className="h-11 w-full justify-center rounded-full text-[14px] font-semibold"
+              className="h-11 w-full justify-center rounded-xl text-[14px] font-semibold active:scale-[0.96]"
             >
               {busy ? "Saving…" : "Save"}
             </Button>

@@ -47,6 +47,78 @@ try {
   await page.getByRole("menuitemradio", { name: "Amount" }).click();
   log("✓ sort menu opened + selected Amount (no crash)");
 
+  // --- payment accounts: create account + card ---
+  await page.goto(`${BASE}/accounts`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Add an account" }).first().click();
+  await page.fill("#account-name", "Maybank");
+  await page.getByRole("dialog").getByRole("button", { name: "Add account" }).click();
+  await page.waitForSelector("text=Maybank", { timeout: 8000 });
+  log("✓ payment account created");
+
+  // Expand the account to reveal its card actions (header toggles the list).
+  await page.getByRole("button", { name: /Maybank/ }).click();
+  await page.getByRole("button", { name: "Add card" }).first().click();
+  await page.fill("#card-label", "Personal Visa");
+  await page.fill("#card-last4", "4242");
+  await page.getByRole("dialog").getByRole("button", { name: "Add card" }).click();
+  await page.waitForSelector("text=Personal Visa", { timeout: 8000 });
+  log("✓ card added to account");
+
+  // --- add a commitment linked to that card ---
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Add commitment" }).click();
+  await page.waitForSelector("#name", { timeout: 5000 });
+  await page.fill("#name", "Linked Sub");
+  await page.fill("#amount", "10.00");
+
+  // Two-step picker: account select, then dependent card select. Target each
+  // field by its label container + the Base UI trigger slot.
+  const accountField = page.locator('div.space-y-1\\.5:has(label:has-text("Account"))');
+  await accountField.locator('[data-slot="select-trigger"]').click();
+  await page.getByRole("option", { name: "Maybank" }).click();
+  const cardField = page.locator('div.space-y-1\\.5:has(label:has-text("Card"))');
+  await cardField.locator('[data-slot="select-trigger"]').click();
+  await page.getByRole("option", { name: /Personal Visa/ }).click();
+
+  const [linkResp] = await Promise.all([
+    page.waitForResponse(
+      (r) => r.url().endsWith("/api/commitments") && r.request().method() === "POST",
+      { timeout: 10000 },
+    ),
+    page.getByRole("dialog").getByRole("button", { name: /Create|Add to ledger/ }).click(),
+  ]);
+  log(`✓ POST linked commitment -> ${linkResp.status()}`);
+
+  // Card link is shown in the (always-visible) meta of the commitment card.
+  await page.waitForSelector("text=Linked Sub", { timeout: 8000 });
+  await page.waitForSelector("text=·4242", { timeout: 8000 });
+  log("✓ linked commitment shows account/card on the card");
+
+  // --- delete the card → commitment must survive, unlinked (US8) ---
+  await page.goto(`${BASE}/accounts`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Delete Personal Visa" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Delete card" }).click();
+  await page.waitForSelector("text=Personal Visa", { state: "detached", timeout: 8000 });
+  log("✓ card deleted");
+
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  await page.waitForSelector("text=Linked Sub", { timeout: 8000 });
+  if ((await page.locator("text=·4242").count()) !== 0) {
+    throw new Error("card link still shown after card delete — SetNull failed");
+  }
+  log("✓ commitment survived card delete, now unlinked (US8)");
+
+  // --- delete the account → cascades cards, commitment intact (US9) ---
+  await page.goto(`${BASE}/accounts`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Delete", exact: true }).first().click();
+  await page.getByRole("dialog").getByRole("button", { name: "Delete account" }).click();
+  await page.waitForSelector("text=Maybank", { state: "detached", timeout: 8000 });
+  log("✓ account deleted (cascade)");
+
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  await page.waitForSelector("text=Linked Sub", { timeout: 8000 });
+  log("✓ commitment intact after account delete (US9)");
+
   // --- open date picker to ensure it doesn't submit/crash ---
   await page.getByRole("button", { name: "Add commitment" }).click();
   await page.waitForSelector("#name", { timeout: 5000 });

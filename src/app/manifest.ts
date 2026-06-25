@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
 
-// Web app manifest (served at /manifest.webmanifest). Colors mirror the earthy
-// palette: sand background, clay theme. `display: standalone` drops browser
-// chrome when installed to the home screen.
+// Web app manifest (served at /manifest.webmanifest). Colors mirror the
+// Statement palette: paper background, oxblood theme. `display: standalone`
+// drops browser chrome when installed to the home screen.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Straker — Commitment Tracker",
@@ -11,8 +11,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     scope: "/",
     display: "standalone",
-    background_color: "#ece4d3",
-    theme_color: "#b75a3c",
+    background_color: "#fbfbf9",
+    theme_color: "#8e2c3a",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },

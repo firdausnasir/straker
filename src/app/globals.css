@@ -5,129 +5,137 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================================
-   Earthy Soft — warm sand bg, parchment cards floating with
-   soft umber-tinted shadows, generous rounded corners, single
-   terracotta accent. Display type Fraunces, body Inter. Gentle
-   rise motion on cards. Light + dark via .dark class on <html>.
+   Ledger — modern fintech. Filled, softly-elevated cards on a
+   cool ground, one committed cobalt accent, profit-green positives.
+   Depth from a real elevation scale (shadows now allowed on cards),
+   generous 12–16px radius. IBM Plex Sans throughout; IBM Plex Mono
+   for hero money numerals (tabular, column-aligned). Crisp ease-out
+   motion. Light + dark via .dark on <html>.
    ============================================================ */
 
 :root {
   color-scheme: light;
 
-  /* ---- earthy palette ---- */
-  --sand: #ece4d3;          /* page bg — warmer/deeper sand for cards to lift off */
-  --sand-edge: #e0d6c1;     /* subtle bg variation for warmth */
-  --parchment: #faf5ea;     /* card surface (lighter than bg → cards lift) */
-  --parchment-2: #f3ecdc;   /* recessed/segmented bg */
-  --umber: #2d2620;         /* primary ink */
-  --stone: #7a6a5a;         /* muted ink */
-  --stone-2: #9d8d7c;       /* hint/placeholder */
-  --taupe: rgba(45, 38, 32, 0.08); /* hairline */
+  /* ---- ledger palette (light) ---- */
+  --paper: #f6f8fb;          /* app background (cool) */
+  --paper-raised: #ffffff;   /* card / surface */
+  --surface-2: #eef2f8;      /* subtle inset surface */
+  --ink: #0b1220;            /* primary text (near-navy) */
+  --ink-muted: #5b6677;      /* secondary text */
+  --hairline: #e3e8ef;       /* rules, borders */
+  --hairline-strong: #d4dbe6;/* inputs, active dividers */
 
-  --clay: #b75a3c;          /* terracotta accent (CTA, active) */
-  --clay-soft: #c7755a;     /* hover/lighter clay */
-  --clay-tint: rgba(183, 90, 60, 0.10);
-  --ochre: #c68a2e;         /* warn */
-  --ochre-tint: rgba(198, 138, 46, 0.14);
-  --rust: #a13a2a;          /* danger */
-  --rust-tint: rgba(161, 58, 42, 0.10);
+  /* primary accent — cobalt. (var still named --wine for consumers
+     that reference it directly; value is now cobalt, not oxblood.) */
+  --wine: #1e40af;           /* primary / CTA / active — cobalt */
+  --wine-soft: #1a3a9a;      /* hover (deeper cobalt on fill) */
+  --wine-tint: rgba(30, 64, 175, 0.08);
+  --positive: #059669;       /* paid / positive — profit green */
+  --positive-tint: rgba(5, 150, 105, 0.10);
+  --alert: #dc2626;          /* danger / overdue */
+  --alert-tint: rgba(220, 38, 38, 0.08);
 
-  /* ---- soft warm shadows ---- */
-  --shadow-soft:
-    0 1px 2px rgba(45, 38, 32, 0.04),
-    0 4px 14px -6px rgba(45, 38, 32, 0.10);
-  --shadow-float:
-    0 2px 4px rgba(45, 38, 32, 0.05),
-    0 14px 32px -14px rgba(45, 38, 32, 0.22);
-  --shadow-cta:
-    0 2px 6px rgba(183, 90, 60, 0.18),
-    0 10px 28px -10px rgba(183, 90, 60, 0.35);
+  /* hero / CTA gradient — cobalt → cyan. No purple/pink. */
+  --gradient-accent: linear-gradient(135deg, #1e40af 0%, #0891b2 100%);
+
+  /* ---- elevation scale (cards may lift now, not only overlays) ---- */
+  --shadow-card:
+    0 1px 2px rgba(11, 18, 32, 0.04),
+    0 2px 8px rgba(11, 18, 32, 0.06);
+  --shadow-card-raised:
+    0 2px 4px rgba(11, 18, 32, 0.05),
+    0 8px 24px -8px rgba(11, 18, 32, 0.14);
+  --shadow-overlay:
+    0 4px 8px rgba(11, 18, 32, 0.06),
+    0 16px 48px -12px rgba(11, 18, 32, 0.22);
+
+  /* desktop sidebar width — toggled to collapsed below; pages offset by it */
+  --rail-w: 15rem; /* 240px expanded */
 
   /* ---- shadcn semantic tokens ---- */
-  --radius: 0.875rem;
-  --background: var(--sand);
-  --foreground: var(--umber);
-  --card: var(--parchment);
-  --card-foreground: var(--umber);
-  --popover: var(--parchment);
-  --popover-foreground: var(--umber);
-  --primary: var(--clay);
-  --primary-foreground: #faf5ea;
-  --secondary: var(--parchment-2);
-  --secondary-foreground: var(--umber);
-  --muted: var(--parchment-2);
-  --muted-foreground: var(--stone);
-  --accent: var(--clay-tint);
-  --accent-foreground: var(--clay);
-  --destructive: var(--rust);
-  --border: var(--taupe);
-  --input: rgba(45, 38, 32, 0.14);
-  --ring: var(--clay);
+  --radius: 0.625rem; /* 10px base — controls ~12px, cards ~16px below */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper-raised);
+  --card-foreground: var(--ink);
+  --popover: var(--paper-raised);
+  --popover-foreground: var(--ink);
+  --primary: var(--wine);
+  --primary-foreground: #ffffff;
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--wine-tint);
+  --accent-foreground: var(--wine);
+  --destructive: var(--alert);
+  --border: var(--hairline);
+  --input: var(--hairline-strong);
+  --ring: var(--wine);
 
   /* legacy aliases — referenced by a few components */
-  --hairline: var(--taupe);
-  --brand: var(--clay);
-  --warn: var(--ochre);
-  --warn-tint: var(--ochre-tint);
-  --danger: var(--rust);
-  --danger-tint: var(--rust-tint);
+  --brand: var(--wine);
+  --warn: #b45309;           /* due soon — amber */
+  --warn-tint: rgba(180, 83, 9, 0.12);
+  --danger: var(--alert);
+  --danger-tint: var(--alert-tint);
 }
 
 .dark {
   color-scheme: dark;
 
-  --sand: #1c1611;
-  --sand-edge: #251e17;
-  --parchment: #2a221b;
-  --parchment-2: #342a22;
-  --umber: #f0e6d6;
-  --stone: #a89a87;
-  --stone-2: #847766;
-  --taupe: rgba(240, 230, 214, 0.10);
+  --paper: #0b1120;          /* deep navy — never pure black */
+  --paper-raised: #141b2d;
+  --surface-2: #1b2438;
+  --ink: #f1f5f9;
+  --ink-muted: #94a3b8;
+  --hairline: rgba(255, 255, 255, 0.08);
+  --hairline-strong: rgba(255, 255, 255, 0.14);
 
-  --clay: #d8755a;
-  --clay-soft: #e08770;
-  --clay-tint: rgba(216, 117, 90, 0.14);
-  --ochre: #d99b40;
-  --ochre-tint: rgba(217, 155, 64, 0.14);
-  --rust: #c84a3c;
-  --rust-tint: rgba(200, 74, 60, 0.14);
+  --wine: #60a5fa;           /* lighter cobalt for dark surfaces */
+  --wine-soft: #7db3fb;
+  --wine-tint: rgba(96, 165, 250, 0.16);
+  --positive: #34d399;
+  --positive-tint: rgba(52, 211, 153, 0.14);
+  --alert: #f87171;
+  --alert-tint: rgba(248, 113, 113, 0.14);
 
-  --shadow-soft:
-    0 1px 2px rgba(0, 0, 0, 0.30),
-    0 6px 16px -6px rgba(0, 0, 0, 0.45);
-  --shadow-float:
-    0 2px 4px rgba(0, 0, 0, 0.35),
-    0 18px 40px -14px rgba(0, 0, 0, 0.60);
-  --shadow-cta:
-    0 2px 6px rgba(216, 117, 90, 0.30),
-    0 12px 32px -10px rgba(216, 117, 90, 0.45);
+  --gradient-accent: linear-gradient(135deg, #3b82f6 0%, #22d3ee 100%);
 
-  --background: var(--sand);
-  --foreground: var(--umber);
-  --card: var(--parchment);
-  --card-foreground: var(--umber);
-  --popover: var(--parchment);
-  --popover-foreground: var(--umber);
-  --primary: var(--clay);
-  --primary-foreground: #1c1611;
-  --secondary: var(--parchment-2);
-  --secondary-foreground: var(--umber);
-  --muted: var(--parchment-2);
-  --muted-foreground: var(--stone);
-  --accent: var(--clay-tint);
-  --accent-foreground: var(--clay);
-  --destructive: var(--rust);
-  --border: var(--taupe);
-  --input: rgba(240, 230, 214, 0.16);
-  --ring: var(--clay);
+  --shadow-card:
+    0 1px 2px rgba(0, 0, 0, 0.32),
+    0 2px 10px rgba(0, 0, 0, 0.40);
+  --shadow-card-raised:
+    0 2px 6px rgba(0, 0, 0, 0.40),
+    0 12px 32px -8px rgba(0, 0, 0, 0.55);
+  --shadow-overlay:
+    0 4px 10px rgba(0, 0, 0, 0.45),
+    0 20px 56px -12px rgba(0, 0, 0, 0.65);
 
-  --hairline: var(--taupe);
-  --brand: var(--clay);
-  --warn: var(--ochre);
-  --warn-tint: var(--ochre-tint);
-  --danger: var(--rust);
-  --danger-tint: var(--rust-tint);
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper-raised);
+  --card-foreground: var(--ink);
+  --popover: var(--paper-raised);
+  --popover-foreground: var(--ink);
+  --primary: var(--wine);
+  --primary-foreground: #08111f;
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--wine-tint);
+  --accent-foreground: var(--wine);
+  --destructive: var(--alert);
+  --border: var(--hairline);
+  --input: var(--hairline-strong);
+  --ring: var(--wine);
+
+  --brand: var(--wine);
+  --warn: #fbbf24;
+  --warn-tint: rgba(251, 191, 36, 0.14);
+  --danger: var(--alert);
+  --danger-tint: var(--alert-tint);
 }
 
 @theme inline {
@@ -150,69 +158,134 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --color-brand: var(--clay);
-  --color-ink: var(--umber);
-  --color-stone: var(--stone);
+  --color-brand: var(--wine);
+  --color-ink: var(--ink);
+  --color-hairline: var(--hairline);
+  --color-surface-2: var(--surface-2);
+  --color-positive: var(--positive);
+  --color-positive-tint: var(--positive-tint);
+  --color-warn: var(--warn);
+  --color-warn-tint: var(--warn-tint);
 
-  /* Sans + display fonts loaded via next/font in layout.tsx. The CSS variables
-     (--font-inter, --font-fraunces) are injected on <html> by the loader. */
-  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  /* Fonts loaded via next/font in layout.tsx. IBM Plex Sans carries both body
+     and headings (hierarchy via weight); IBM Plex Mono backs hero money
+     numerals (.font-num). Variables injected on <html> by the loader. */
+  --font-sans: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-display: var(--font-body), system-ui, sans-serif;
+  --font-heading: var(--font-body), system-ui, sans-serif;
+  --font-mono: var(--font-mono-face), "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 10px);
+  --radius-sm: calc(var(--radius) - 4px); /* 6px */
+  --radius-md: calc(var(--radius) - 2px); /* 8px */
+  --radius-lg: calc(var(--radius));       /* 10px */
+  --radius-xl: calc(var(--radius) + 2px); /* 12px */
+  --radius-2xl: calc(var(--radius) + 6px);/* 16px — card radius */
 }
 
 html {
   font-family: var(--font-sans);
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.006em;
 }
 
 body {
   min-height: 100dvh;
   background-color: var(--background);
-  /* Very soft warm radial tint at the top — gives the sand bg a sun-warmed
-     feel without the previous glass-era multi-tint chaos. */
-  background-image:
-    radial-gradient(80% 50% at 50% 0%, rgba(255, 232, 200, 0.20), transparent 70%);
-  background-attachment: fixed;
 }
 
+/* Tabular figures — every money + date + last4 number uses this so values
+   never reflow on update (the running total digit-roll depends on it). */
 .tnum {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
 
-/* Display type — Fraunces, calm weight. Used for page titles. Slightly tighter
-   tracking to read as editorial, not romantic. */
+/* Display type — IBM Plex Sans, heavier weight + tight tracking. Page titles,
+   section heads. */
 .font-display {
   font-family: var(--font-display);
-  font-weight: 400;
-  letter-spacing: -0.018em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
-/* Floating parchment card. Soft warm shadow, generous radius. The shared
-   surface used by every primary content block. */
+/* Hero numerals — IBM Plex Mono, tabular. The running total + big balance
+   figures. Mono keeps columns aligned and reads as a precise ledger. */
+.font-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: -0.01em;
+}
+
+/* Editorial wrap — no orphans on titles, no widows in body copy. */
+.text-balance { text-wrap: balance; }
+.text-pretty { text-wrap: pretty; }
+
+/* Surface — a filled, softly-elevated card: card fill + hairline edge + the
+   resting elevation. The shared container for every content block. */
 .surface {
   background: var(--card);
+  border: 1px solid var(--hairline);
   border-radius: var(--radius-2xl);
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--shadow-card);
 }
 
-.surface-float {
+/* Raised variant — interactive cards lift on hover/focus. */
+.surface-raised {
   background: var(--card);
+  border: 1px solid var(--hairline);
   border-radius: var(--radius-2xl);
-  box-shadow: var(--shadow-float);
+  box-shadow: var(--shadow-card-raised);
 }
 
-/* Form control — rounded, parchment-filled, soft inset feel. 44px min height
-   for mobile tap comfort. */
+/* Collapsed desktop sidebar — pages read --rail-w for their left offset. */
+:root[data-rail="collapsed"] {
+  --rail-w: 4.5rem; /* 72px collapsed (icon rail) */
+}
+
+/* Sidebar collapse is driven by the html[data-rail] attribute (set pre-paint),
+   so label/wordmark visibility is CSS-only — no hydration flash. Desktop only;
+   the mobile bottom bar always shows labels. */
+@media (min-width: 768px) {
+  :root[data-rail="collapsed"] .rail-label,
+  :root[data-rail="collapsed"] .rail-wordmark-full {
+    display: none;
+  }
+  /* Collapsed (icon-only) rail: the wordmark group is hidden, so center the
+     lone toggle in the head and center each nav icon in its row. */
+  :root[data-rail="collapsed"] .rail-head {
+    justify-content: center;
+  }
+  :root[data-rail="collapsed"] .rail-row {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+/* Overlay surface — dialogs / popovers. Strongest elevation + scrim isolates. */
+.surface-overlay {
+  background: var(--popover);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-overlay);
+}
+
+/* Statement row — ruled list item. Hairline divider between rows; the last
+   row drops its rule. Min height for mobile tap comfort. */
+.stmt-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 56px;
+  border-bottom: 1px solid var(--hairline);
+}
+.stmt-row:last-child { border-bottom: 0; }
+
+/* Form control — hairline border, card fill, 44px min height, cobalt focus. */
 .field {
   display: flex;
   width: 100%;
@@ -222,22 +295,25 @@ body {
   border: 1px solid var(--input);
   background: var(--card);
   color: var(--foreground);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   padding: 0 0.875rem;
   font-size: 16px;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.14s cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 0.14s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .field:focus,
 .field:focus-visible {
   outline: none;
   border-color: var(--ring);
-  box-shadow: 0 0 0 3px var(--clay-tint);
+  box-shadow: 0 0 0 3px var(--wine-tint);
 }
 
 /* -------- motion --------
-   Gentle rise on lists, soft sheet for dialogs. Reduced-motion users get none. */
-@keyframes rise {
+   Crisp + fast, ease-out, no bounce. Easing cubic-bezier(0.2, 0, 0, 1). Row
+   reveal is a one-shot keyframe (stagger via animation-delay). Reduced-motion
+   users get none. */
+@keyframes reveal {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
@@ -246,14 +322,26 @@ body {
   to { opacity: 1; }
 }
 @keyframes sheet-in {
-  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+@keyframes digit-roll {
+  from { opacity: 0; transform: translateY(0.5em); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-.animate-rise { animation: rise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.animate-overlay { animation: overlay-in 0.20s ease both; }
-.animate-sheet { animation: sheet-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-rise { animation: reveal 0.22s cubic-bezier(0.2, 0, 0, 1) both; }
+.animate-reveal { animation: reveal 0.22s cubic-bezier(0.2, 0, 0, 1) both; }
+.animate-overlay { animation: overlay-in 0.2s cubic-bezier(0.2, 0, 0, 1) both; }
+.animate-sheet { animation: sheet-in 0.2s cubic-bezier(0.2, 0, 0, 1) both; }
+.animate-digit { animation: digit-roll 0.22s cubic-bezier(0.2, 0, 0, 1) both; }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-rise, .animate-overlay, .animate-sheet { animation: none; }
+  .animate-rise,
+  .animate-reveal,
+  .animate-overlay,
+  .animate-sheet,
+  .animate-digit {
+    animation: none;
+  }
 }

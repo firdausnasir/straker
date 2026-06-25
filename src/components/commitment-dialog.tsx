@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { signOut } from "next-auth/react";
 import type { CommitmentDTO } from "@/lib/types";
@@ -52,6 +52,19 @@ function reminderLeadLabel(days: number): string {
   return days === 0 ? "On the due date" : `${days} day${days === 1 ? "" : "s"} before`;
 }
 
+// Shape returned by GET /api/accounts. Cards carry no PAN — label/last4/network only.
+type PickerCard = { id: string; label: string; last4: string | null; network: string | null };
+type PickerAccount = { id: string; name: string; type: string; cards: PickerCard[] };
+
+// Sentinel for the "No card" option — Select can't hold a real null value, so we
+// map this back to null when building the request body.
+const NO_CARD = "__none__";
+
+// Card display: "{label} ·{last4}" when a last4 is on file, else just the label.
+function cardOptionLabel(card: PickerCard): string {
+  return card.last4 ? `${card.label} ·${card.last4}` : card.label;
+}
+
 // Single form for both create and edit. Passing `commitment` switches it to
 // edit mode (PATCH the existing row); omitting it creates a new one.
 export function CommitmentDialog({
@@ -87,6 +100,54 @@ export function CommitmentDialog({
   );
   const [pending, setPending] = useState(false);
 
+  // Optional account→card link. Pre-seed from the existing card in edit mode so
+  // the picker reflects the current link before accounts have loaded.
+  const [accounts, setAccounts] = useState<PickerAccount[]>([]);
+  const [accountId, setAccountId] = useState<string>(commitment?.card?.accountId ?? "");
+  const [cardId, setCardId] = useState<string>(commitment?.card?.id ?? NO_CARD);
+
+  // Load the user's accounts once on mount so the picker has options. Failure is
+  // non-fatal — the link is optional, so we leave the picker empty rather than
+  // blocking the form.
+  useEffect(() => {
+    let active = true;
+
+    async function loadAccounts() {
+      try {
+        const res = await fetch("/api/accounts");
+
+        if (!res.ok) {
+          return;
+        }
+
+        const data = (await res.json()) as { accounts?: PickerAccount[] };
+
+        if (active) {
+          setAccounts(data.accounts ?? []);
+        }
+      } catch {
+        // Optional feature — swallow and leave the picker empty.
+      }
+    }
+
+    void loadAccounts();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Cards available for the chosen account; empty until an account is picked.
+  const selectedAccount = accounts.find((a) => a.id === accountId);
+  const cardsForAccount = selectedAccount?.cards ?? [];
+
+  // Switching account invalidates the prior card choice — reset to "No card".
+  // The Select hands back `string | null`; coalesce to "" (no account).
+  function handleAccountChange(value: string | null) {
+    setAccountId(value ?? "");
+    setCardId(NO_CARD);
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setPending(true);
@@ -108,6 +169,8 @@ export function CommitmentDialog({
             notes,
             reminderEnabled,
             reminderLeadDays,
+            // NO_CARD sentinel → null clears the link; otherwise send the card id.
+            cardId: cardId === NO_CARD ? null : cardId,
           }),
         },
       );
@@ -137,15 +200,15 @@ export function CommitmentDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90dvh] gap-0 overflow-y-auto rounded-[var(--radius-2xl)] p-0 sm:max-w-md">
+      <DialogContent className="max-h-[90dvh] gap-0 overflow-y-auto p-0 sm:max-w-md">
         <DialogHeader className="px-6 pt-6 text-left">
-          <DialogTitle className="text-xl font-semibold tracking-tight">
+          <DialogTitle className="font-display text-xl">
             {isEdit ? "Edit commitment" : "Add a commitment"}
           </DialogTitle>
           <DialogDescription>Tracked in its own currency — no conversion.</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 pb-6 pt-5">
+        <form onSubmit={handleSubmit} className="space-y-4 px-6 pt-5 pb-6">
           <div className="space-y-1.5">
             <Label htmlFor="name">Name</Label>
             <Input
@@ -243,7 +306,54 @@ export function CommitmentDialog({
             />
           </div>
 
-          <label className="flex cursor-pointer items-center justify-between rounded-2xl bg-[var(--parchment-2)] px-4 py-3.5">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>
+                Account <span className="font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <Select value={accountId} onValueChange={handleAccountChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose…">
+                    {(value) =>
+                      value ? accounts.find((a) => a.id === value)?.name ?? "Choose…" : "Choose…"
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Card</Label>
+              <Select value={cardId} onValueChange={(v) => setCardId(v ?? NO_CARD)} disabled={!accountId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose…">
+                    {(value) => {
+                      const card = cardsForAccount.find((c) => c.id === value);
+
+                      return card ? cardOptionLabel(card) : "No card";
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_CARD}>No card</SelectItem>
+                  {cardsForAccount.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {cardOptionLabel(c)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <label className="flex cursor-pointer items-center justify-between rounded-xl border border-border bg-secondary px-4 py-3.5">
             <span>
               <span className="block text-sm font-semibold text-foreground">Auto-renew</span>
               <span className="block text-xs text-muted-foreground">
@@ -255,7 +365,7 @@ export function CommitmentDialog({
             <Switch checked={autoRenew} onCheckedChange={setAutoRenew} aria-label="Auto-renew" />
           </label>
 
-          <div className="rounded-2xl bg-[var(--parchment-2)] px-4 py-3.5">
+          <div className="rounded-xl border border-border bg-secondary px-4 py-3.5">
             <label className="flex cursor-pointer items-center justify-between">
               <span>
                 <span className="block text-sm font-semibold text-foreground">Remind me</span>
@@ -271,7 +381,7 @@ export function CommitmentDialog({
             </label>
 
             {reminderEnabled && (
-              <div className="mt-4 border-t border-[var(--border)] pt-4">
+              <div className="mt-4 border-t border-border pt-4">
                 <Select
                   value={String(reminderLeadDays)}
                   onValueChange={(v) => setReminderLeadDays(Number(v))}
@@ -292,14 +402,18 @@ export function CommitmentDialog({
           </div>
 
           <div className="flex gap-2 pt-1">
-            <Button type="button" variant="secondary" className="h-12 flex-1 rounded-full" onClick={onClose}>
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-12 flex-1 rounded-lg active:scale-[0.96]"
+              onClick={onClose}
+            >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={pending}
-              className="h-12 flex-[1.4] rounded-full text-[15px]"
-              style={{ boxShadow: "var(--shadow-cta)" }}
+              className="h-12 flex-[1.4] rounded-lg text-[15px] active:scale-[0.96]"
             >
               {pending
                 ? isEdit

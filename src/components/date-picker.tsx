@@ -42,12 +42,12 @@ export function DatePicker({
       <PopoverTrigger
         id={id}
         className={cn(
-          "field flex w-full items-center justify-between text-left",
+          "field justify-between text-left transition-[border-color,box-shadow] active:scale-[0.99]",
           !value && "text-muted-foreground",
         )}
       >
         <span className="tnum">{value ? format(value) : "Pick a date"}</span>
-        <CalendarIcon className="h-[18px] w-[18px] opacity-60" />
+        <CalendarIcon className="size-[18px] shrink-0 opacity-60" />
       </PopoverTrigger>
       <PopoverContent className="w-auto p-2" align="start">
         <Calendar

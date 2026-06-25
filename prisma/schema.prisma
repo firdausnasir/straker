@@ -19,8 +19,46 @@ model User {
   createdAt         DateTime           @default(now())
   commitments       Commitment[]
   pushSubscriptions PushSubscription[]
+  paymentAccounts   PaymentAccount[]
   // At most one passkey per account (see Credential.userId @unique).
   credential        Credential?
+}
+
+// A funding source the user pays commitments from (e.g. "Maybank"). Holds many
+// cards. User-scoped; deleting the user cascades to its accounts. `type` is a
+// string enum validated at the boundary (see ACCOUNT_TYPES in constants.ts).
+model PaymentAccount {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  // "bank" | "credit" | "ewallet" | "cash"
+  type      String
+  cards     Card[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// A card under one payment account. NEVER stores a full PAN, CVV, or expiry —
+// only a display label, an optional last-4, and an optional network. Deleting
+// the parent account cascades to its cards; deleting a card SetNulls the
+// `cardId` of any commitment pointing at it (the commitment survives, unlinked).
+model Card {
+  id          String         @id @default(cuid())
+  accountId   String
+  account     PaymentAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  label       String
+  // Optional last 4 digits only — never the full number.
+  last4       String?
+  // "visa" | "mastercard" | "amex" | "other"
+  network     String?
+  commitments Commitment[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([accountId])
 }
 
 // A WebAuthn passkey. One per user — adding/renewing replaces the single row.
@@ -78,6 +116,12 @@ model Commitment {
   isActive    Boolean  @default(true)
   notes       String?
 
+  // Optional link to the card this commitment is paid from. SetNull on card
+  // delete: the commitment survives, just unlinked. The account is derived
+  // through the card (Card.account) — no direct account FK here.
+  cardId      String?
+  card        Card?    @relation(fields: [cardId], references: [id], onDelete: SetNull)
+
   // Due-date reminder opt-in (per commitment). When enabled, a daily cron
   // pushes a reminder `reminderLeadDays` days before nextDueDate.
   reminderEnabled  Boolean @default(false)
@@ -91,4 +135,5 @@ model Commitment {
   updatedAt   DateTime @updatedAt
 
   @@index([userId, isActive, nextDueDate])
+  @@index([cardId])
 }

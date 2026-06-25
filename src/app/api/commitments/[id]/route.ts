@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { commitmentUpdateSchema } from "@/lib/validation";
 import { toMinorUnits } from "@/lib/money";
+import { getCardForUser } from "@/lib/accounts";
 import { Prisma } from "@prisma/client";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -27,8 +28,16 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
   const input = parsed.data;
 
-  // Build the update payload only from fields actually provided.
-  const data: Prisma.CommitmentUpdateInput = {};
+  // A non-null cardId must belong to the session user — never trust the body for
+  // ownership. A literal null is allowed: it clears the link (SetNull relation).
+  if (input.cardId != null && !(await getCardForUser(session.user.id, input.cardId))) {
+    return NextResponse.json({ error: "Unknown card" }, { status: 400 });
+  }
+
+  // Build the update payload only from fields actually provided. Unchecked
+  // variant so the scalar `cardId` FK can be set/cleared directly (updateMany
+  // takes scalar mutation input, not the relation form).
+  const data: Prisma.CommitmentUncheckedUpdateInput = {};
   if (input.name !== undefined) data.name = input.name;
   if (input.type !== undefined) data.type = input.type;
   if (input.amount !== undefined) data.amountMinor = toMinorUnits(input.amount);
@@ -40,6 +49,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   if (input.notes !== undefined) data.notes = input.notes ? input.notes : null;
   if (input.reminderEnabled !== undefined) data.reminderEnabled = input.reminderEnabled;
   if (input.reminderLeadDays !== undefined) data.reminderLeadDays = input.reminderLeadDays;
+  // Scalar FK set/clear; updateMany takes the scalar (null clears via SetNull).
+  if (input.cardId !== undefined) data.cardId = input.cardId;
 
   // Scope the update to the owner so one user can't touch another's rows.
   const result = await prisma.commitment.updateMany({

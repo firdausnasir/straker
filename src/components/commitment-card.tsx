@@ -4,10 +4,22 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { signOut } from "next-auth/react";
-import { FastForward, Check, Trash2, Pencil } from "lucide-react";
+import {
+  FastForward,
+  Check,
+  Trash2,
+  Pencil,
+  CreditCard,
+  ChevronRight,
+  Repeat,
+  Landmark,
+  Wallet,
+  Receipt,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { CommitmentDTO } from "@/lib/types";
 import { formatMoney } from "@/lib/money";
-import { CYCLE_LABELS } from "@/lib/constants";
+import { CYCLE_LABELS, type CommitmentType } from "@/lib/constants";
 import { dueLabel, formatDueDate, urgencyOf, type Urgency } from "@/lib/dates";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,19 +35,21 @@ import {
 import { cn } from "@/lib/utils";
 import { CommitmentDialog } from "./commitment-dialog";
 
-const URGENCY_TEXT: Record<Urgency, string> = {
-  overdue: "text-[var(--danger)]",
-  soon: "text-[var(--warn)]",
-  upcoming: "text-muted-foreground",
-  later: "text-muted-foreground",
+// Actionable urgencies (overdue / due soon) read as a filled tinted pill so the
+// eye lands on them first; calm items (upcoming / later) get a quiet inset chip.
+const URGENCY_PILL_CALM = "bg-muted text-muted-foreground";
+const URGENCY_PILL: Partial<Record<Urgency, string>> = {
+  overdue: "bg-destructive/10 text-destructive",
+  soon: "bg-warn-tint text-warn",
 };
 
-// Only the actionable states earn a colored ring + dot — calm items stay clean,
-// so the eye lands on what's overdue or due soon first. The ring wraps the
-// whole card so the urgency reads from any angle.
-const URGENCY_ACCENT: Partial<Record<Urgency, string>> = {
-  overdue: "var(--danger)",
-  soon: "var(--warn)",
+// Leading category chip — a lucide glyph keyed off the commitment type, so the
+// eye can sort the list by kind at a glance. Cobalt-tinted to match the accent.
+const TYPE_ICON: Record<CommitmentType, LucideIcon> = {
+  subscription: Repeat,
+  recurring: Receipt,
+  loan: Landmark,
+  other: Wallet,
 };
 
 export function CommitmentCard({ commitment }: { commitment: CommitmentDTO }) {
@@ -47,7 +61,8 @@ export function CommitmentCard({ commitment }: { commitment: CommitmentDTO }) {
 
   const due = new Date(commitment.nextDueDate);
   const urgency = urgencyOf(due);
-  const accent = URGENCY_ACCENT[urgency];
+  const pill = URGENCY_PILL[urgency] ?? URGENCY_PILL_CALM;
+  const TypeIcon = TYPE_ICON[commitment.type];
   const isAuto = commitment.renewalMode === "AUTO";
 
   async function act(path: string, method: string, okMessage: string) {
@@ -78,73 +93,99 @@ export function CommitmentCard({ commitment }: { commitment: CommitmentDTO }) {
   }
 
   return (
+    // Filled, softly-elevated commitment card. The trigger lifts to the raised
+    // shadow while expanded; a leading cobalt-tinted type chip anchors each row.
     <div
-      className="surface relative overflow-hidden"
-      // Inset ring sits inside the rounded border-box and stacks above the soft
-      // shadow — gives the whole card a colored outline without affecting layout.
-      style={
-        accent
-          ? { boxShadow: `inset 0 0 0 1.5px ${accent}, var(--shadow-soft)` }
-          : undefined
-      }
+      className={cn(
+        "surface group/card overflow-hidden transition-shadow duration-200 ease-[cubic-bezier(0.2,0,0,1)]",
+        open && "shadow-[var(--shadow-card-raised)]",
+      )}
     >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         className={cn(
-          "block w-full px-4 py-3.5 text-left transition-colors",
-          "hover:bg-secondary/60 aria-expanded:bg-secondary/60",
+          "block w-full rounded-2xl px-4 py-4 text-left transition-colors",
+          "hover:bg-muted/40 aria-expanded:bg-muted/30",
+          "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
         )}
       >
-        {/* row 1 — primary: name (wraps freely) + amount */}
+        {/* row 1 — type chip + name (wraps freely) + the hero mono amount */}
         <div className="flex items-start gap-3">
-          <h3 className="min-w-0 flex-1 break-words text-[15px] font-semibold leading-snug text-foreground">
+          <span
+            aria-hidden
+            className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"
+          >
+            <TypeIcon className="size-[18px]" strokeWidth={2} />
+          </span>
+          <h3 className="mt-0.5 min-w-0 flex-1 text-pretty break-words text-[15px] font-semibold leading-snug text-foreground">
             {commitment.name}
           </h3>
-          <span className="tnum shrink-0 text-right text-[15px] font-semibold leading-snug text-foreground">
+          <span className="font-num shrink-0 text-right text-[18px] leading-tight text-foreground">
             {formatMoney(commitment.amountMinor, commitment.currency)}
           </span>
         </div>
 
-        {/* row 2 — meta: due (left, urgency-coded) · cycle + renewal (right) */}
-        <div className="mt-1.5 flex items-center justify-between gap-3 text-[12px]">
-          <span className={cn("flex min-w-0 items-center gap-1.5", URGENCY_TEXT[urgency])}>
-            {accent && (
-              <span
-                aria-hidden
-                className="size-1.5 shrink-0 rounded-full"
-                style={{ background: accent }}
-              />
+        {/* row 2 — meta: due status pill (left) · cycle + renewal + chevron */}
+        <div className="mt-3 flex items-center justify-between gap-3 text-[12px]">
+          <span
+            className={cn(
+              "inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 font-medium",
+              pill,
             )}
-            <span className="truncate">
-              <span className="tnum font-medium">{dueLabel(due)}</span>
-              <span className="text-muted-foreground"> · {formatDueDate(due)}</span>
-            </span>
+          >
+            <span className="tnum">{dueLabel(due)}</span>
+            <span className="opacity-70"> · {formatDueDate(due)}</span>
           </span>
 
-          <span className="shrink-0 text-muted-foreground">
-            {CYCLE_LABELS[commitment.cycle]}
-            <span className="mx-1.5 opacity-50">·</span>
-            <span className={cn("font-medium", isAuto ? "text-primary" : "text-foreground/70")}>
-              {isAuto ? "Auto" : "Manual"}
+          <span className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
+            <span>
+              {CYCLE_LABELS[commitment.cycle]}
+              <span className="mx-1.5 opacity-40">·</span>
+              <span className={cn("font-medium", isAuto ? "text-primary" : "text-foreground/70")}>
+                {isAuto ? "Auto" : "Manual"}
+              </span>
             </span>
+            <ChevronRight
+              aria-hidden
+              className={cn(
+                "size-3.5 shrink-0 opacity-50 transition-transform duration-200 ease-[cubic-bezier(0.2,0,0,1)]",
+                open && "rotate-90",
+              )}
+            />
           </span>
         </div>
+
+        {/* row 3 — linked card (only when set). Own muted line so row 2's
+            due/cycle truncation is untouched at narrow width. */}
+        {commitment.card && (
+          <div className="mt-2.5 flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <CreditCard aria-hidden className="size-3 shrink-0 opacity-70" />
+            <span className="truncate">
+              {commitment.card.accountName}
+              <span className="tnum opacity-70">
+                {commitment.card.last4
+                  ? ` ·${commitment.card.last4}`
+                  : ` · ${commitment.card.label}`}
+              </span>
+            </span>
+          </div>
+        )}
       </button>
 
       {/* grid-rows 0fr→1fr gives a smooth, interruptible height transition without JS */}
       <div
         inert={!open}
         className={cn(
-          "grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+          "grid transition-[grid-template-rows] duration-200 ease-[cubic-bezier(0.2,0,0,1)]",
           open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         )}
       >
         <div className="overflow-hidden">
-          <div className="space-y-3 border-t border-[var(--hairline)] px-4 py-4">
+          <div className="space-y-3 border-t border-border px-4 pt-3 pb-4">
             {commitment.notes && (
-              <p className="text-[13px] leading-relaxed text-muted-foreground">
+              <p className="text-pretty text-[13px] leading-relaxed text-muted-foreground">
                 {commitment.notes}
               </p>
             )}
@@ -154,37 +195,37 @@ export function CommitmentCard({ commitment }: { commitment: CommitmentDTO }) {
                 carry meaning for screen readers and desktop hover. */}
             <div className="flex items-center justify-end gap-2">
               <Button
-                size="icon"
+                size="icon-lg"
                 variant="secondary"
                 disabled={busy}
                 onClick={() => act("/renew", "POST", isAuto ? "Advanced to the next cycle" : "Marked paid")}
                 aria-label={isAuto ? "Advance to next cycle" : "Mark paid"}
                 title={isAuto ? "Advance to next cycle" : "Mark paid"}
-                className="h-11 w-11 rounded-full"
+                className="rounded-lg active:scale-[0.96]"
               >
-                {isAuto ? <FastForward className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                {isAuto ? <FastForward /> : <Check />}
               </Button>
               <Button
-                size="icon"
+                size="icon-lg"
                 variant="secondary"
                 disabled={busy}
                 onClick={() => setEditOpen(true)}
                 aria-label="Edit commitment"
                 title="Edit"
-                className="h-11 w-11 rounded-full"
+                className="rounded-lg active:scale-[0.96]"
               >
-                <Pencil className="h-4 w-4" />
+                <Pencil />
               </Button>
               <Button
-                size="icon"
-                variant="ghost"
+                size="icon-lg"
+                variant="destructive"
                 disabled={busy}
                 onClick={() => setConfirmOpen(true)}
                 aria-label="Remove commitment"
                 title="Remove"
-                className="h-11 w-11 rounded-full text-[var(--danger)] hover:bg-[var(--danger-tint)] hover:text-[var(--danger)]"
+                className="rounded-lg active:scale-[0.96]"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 />
               </Button>
             </div>
           </div>
@@ -194,7 +235,7 @@ export function CommitmentCard({ commitment }: { commitment: CommitmentDTO }) {
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-semibold">Remove this commitment?</AlertDialogTitle>
+            <AlertDialogTitle className="font-display text-lg">Remove this commitment?</AlertDialogTitle>
             <AlertDialogDescription>
               “{commitment.name}” will be deleted from your ledger. This can’t be undone.
             </AlertDialogDescription>
