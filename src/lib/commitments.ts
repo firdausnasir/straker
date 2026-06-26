@@ -37,21 +37,21 @@ export async function advanceLapsedAutoCommitments(now: Date): Promise<number> {
   return lapsed.length;
 }
 
-// A commitment with its linked card and that card's parent account eager-loaded
-// (both nullable — the link is optional). Mirrors the CommitmentWithUser pattern
-// below. Consumers map this to CommitmentDTO.card.
-export type CommitmentWithCard = Prisma.CommitmentGetPayload<{
-  include: { card: { include: { account: true } } };
+// A commitment with its linked payment account eager-loaded (nullable — the
+// link is optional). Mirrors the CommitmentWithUser pattern below. Consumers
+// map this to CommitmentDTO.account.
+export type CommitmentWithAccount = Prisma.CommitmentGetPayload<{
+  include: { account: true };
 }>;
 
 // Active commitments for a user, sorted by soonest due date first. Pure read —
 // AUTO advancement happens in the cron (advanceLapsedAutoCommitments). The
-// `card.account` include carries the payment-account link to the client.
-export async function getActiveCommitments(userId: string): Promise<CommitmentWithCard[]> {
+// `account` include carries the payment-account link to the client.
+export async function getActiveCommitments(userId: string): Promise<CommitmentWithAccount[]> {
   return prisma.commitment.findMany({
     where: { userId, isActive: true },
     orderBy: { nextDueDate: "asc" },
-    include: { card: { include: { account: true } } },
+    include: { account: true },
   });
 }
 

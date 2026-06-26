@@ -3,7 +3,6 @@ import { auth } from "@/auth";
 import { getActiveCommitments } from "@/lib/commitments";
 import type { CommitmentDTO } from "@/lib/types";
 import type {
-  CardNetwork,
   CommitmentType,
   Currency,
   Cycle,
@@ -33,17 +32,14 @@ export default async function HomePage() {
     notes: c.notes,
     reminderEnabled: c.reminderEnabled,
     reminderLeadDays: c.reminderLeadDays,
-    cardId: c.cardId,
-    // Flatten the eager-loaded card → account into the compact DTO summary
-    // the dashboard filter + card UI consume without a second fetch.
-    card: c.card
+    accountId: c.account?.id ?? null,
+    // Flatten the eager-loaded account into the compact DTO summary the
+    // dashboard filter + card UI consume without a second fetch.
+    account: c.account
       ? {
-          id: c.card.id,
-          label: c.card.label,
-          last4: c.card.last4,
-          network: c.card.network as CardNetwork | null,
-          accountId: c.card.accountId,
-          accountName: c.card.account.name,
+          id: c.account.id,
+          name: c.account.name,
+          last4: c.account.last4,
         }
       : null,
   }));

@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { commitmentInputSchema } from "@/lib/validation";
 import { toMinorUnits } from "@/lib/money";
 import { REMINDER_DEFAULT_LEAD_DAYS } from "@/lib/constants";
-import { getCardForUser } from "@/lib/accounts";
+import { getAccountForUser } from "@/lib/accounts";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -26,18 +26,18 @@ export async function POST(request: Request) {
 
   const input = parsed.data;
 
-  // Never trust a body-supplied cardId for ownership — confirm the card belongs
-  // to the session user before linking. A foreign/unknown id is rejected, not
-  // silently dropped, so the client surfaces the mistake.
-  if (input.cardId != null && !(await getCardForUser(session.user.id, input.cardId))) {
-    return NextResponse.json({ error: "Unknown card" }, { status: 400 });
+  // Never trust a body-supplied accountId for ownership — confirm the account
+  // belongs to the session user before linking. A foreign/unknown id is
+  // rejected, not silently dropped, so the client surfaces the mistake.
+  if (input.accountId != null && !(await getAccountForUser(session.user.id, input.accountId))) {
+    return NextResponse.json({ error: "Unknown account" }, { status: 400 });
   }
 
   try {
     const commitment = await prisma.commitment.create({
       data: {
         userId: session.user.id,
-        cardId: input.cardId ?? null,
+        accountId: input.accountId ?? null,
         name: input.name,
         type: input.type,
         amountMinor: toMinorUnits(input.amount),

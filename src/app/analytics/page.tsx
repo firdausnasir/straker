@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { getActiveCommitments } from "@/lib/commitments";
 import { computeAnalytics } from "@/lib/analytics";
 import { formatMoney } from "@/lib/money";
-import type { CardNetwork, CommitmentType, Currency } from "@/lib/constants";
+import type { CommitmentType, Currency } from "@/lib/constants";
 import { AppHeader } from "@/components/app-header";
 import { TabBar } from "@/components/tab-bar";
 import { RunningTotal } from "@/components/running-total";
@@ -31,15 +31,12 @@ export default async function AnalyticsPage() {
       notes: c.notes,
       reminderEnabled: c.reminderEnabled,
       reminderLeadDays: c.reminderLeadDays,
-      cardId: c.cardId,
-      card: c.card
+      accountId: c.account?.id ?? null,
+      account: c.account
         ? {
-            id: c.card.id,
-            label: c.card.label,
-            last4: c.card.last4,
-            network: c.card.network as CardNetwork | null,
-            accountId: c.card.accountId,
-            accountName: c.card.account.name,
+            id: c.account.id,
+            name: c.account.name,
+            last4: c.account.last4,
           }
         : null,
     })),

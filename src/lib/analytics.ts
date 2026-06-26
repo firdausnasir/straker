@@ -26,7 +26,7 @@ export type CurrencyTotal = {
 };
 
 // Per-account breakdown. Each account holds its own per-currency totals —
-// currencies are never mixed within an account (no FX). Null-card commitments
+// currencies are never mixed within an account (no FX). Unlinked commitments
 // fall into a synthetic "Unassigned" group keyed by UNASSIGNED_ACCOUNT_ID.
 export type AccountTotal = {
   accountId: string;
@@ -88,8 +88,8 @@ export function computeAnalytics(commitments: CommitmentDTO[]): Analytics {
 
     typeMap.set(c.type, (typeMap.get(c.type) ?? 0) + 1);
 
-    const accountId = c.card?.accountId ?? UNASSIGNED_ACCOUNT_ID;
-    const accountName = c.card?.accountName ?? UNASSIGNED_ACCOUNT_NAME;
+    const accountId = c.account?.id ?? UNASSIGNED_ACCOUNT_ID;
+    const accountName = c.account?.name ?? UNASSIGNED_ACCOUNT_NAME;
 
     let account = accountMap.get(accountId);
     if (!account) {
