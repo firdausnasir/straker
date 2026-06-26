@@ -104,8 +104,8 @@ export function Dashboard({
     const byId = new Map<string, string>();
 
     for (const c of commitments) {
-      if (c.card) {
-        byId.set(c.card.accountId, c.card.accountName);
+      if (c.account) {
+        byId.set(c.account.id, c.account.name);
       }
     }
 
@@ -137,7 +137,7 @@ export function Dashboard({
       }
       if (types.length > 0 && !types.includes(c.type)) return false;
       if (selectedAccounts.length > 0) {
-        const key = c.card?.accountId ?? ACCOUNT_UNASSIGNED;
+        const key = c.account?.id ?? ACCOUNT_UNASSIGNED;
         if (!selectedAccounts.includes(key)) return false;
       }
 

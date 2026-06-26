@@ -1,22 +1,12 @@
-import type {
-  AccountType,
-  CardNetwork,
-  CommitmentType,
-  Currency,
-  Cycle,
-  RenewalMode,
-} from "./constants";
+import type { CommitmentType, Currency, Cycle, RenewalMode } from "./constants";
 
-// Compact summary of the card a commitment is paid from, embedded in the
-// commitment DTO so the card UI + dashboard filter render without extra fetches.
-// `accountName` is denormalized for display (the account is the card's parent).
-export type CommitmentCardDTO = {
+// Compact summary of the payment account a commitment is paid from, embedded in
+// the commitment DTO so the dashboard filter + card meta render without extra
+// fetches. Single flat layer — `name` is the only label (cards are gone).
+export type CommitmentAccountDTO = {
   id: string;
-  label: string;
+  name: string;
   last4: string | null;
-  network: CardNetwork | null;
-  accountId: string;
-  accountName: string;
 };
 
 // Serializable shape passed from server components to client components.
@@ -33,20 +23,12 @@ export type CommitmentDTO = {
   notes: string | null;
   reminderEnabled: boolean;
   reminderLeadDays: number;
-  cardId: string | null;
-  card: CommitmentCardDTO | null;
-};
-
-export type CardDTO = {
-  id: string;
-  label: string;
-  last4: string | null;
-  network: CardNetwork | null;
+  accountId: string | null;
+  account: CommitmentAccountDTO | null;
 };
 
 export type PaymentAccountDTO = {
   id: string;
   name: string;
-  type: AccountType;
-  cards: CardDTO[];
+  last4: string | null;
 };

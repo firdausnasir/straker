@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { accountInputSchema } from "@/lib/validation";
-import { getAccountsWithCards } from "@/lib/accounts";
+import { getAccounts, getDefaultAccount } from "@/lib/accounts";
 
 export async function GET() {
   const session = await auth();
@@ -12,11 +12,12 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // getAccountsWithCards is user-scoped, so this can only ever return the
-  // caller's own accounts — IDs from elsewhere never enter the query.
-  const accounts = await getAccountsWithCards(session.user.id);
+  // Both reads are user-scoped, so this can only ever return the caller's own
+  // accounts — IDs from elsewhere never enter the query.
+  const accounts = await getAccounts(session.user.id);
+  const defaultAccount = await getDefaultAccount(session.user.id);
 
-  return NextResponse.json({ accounts });
+  return NextResponse.json({ accounts, defaultAccountId: defaultAccount?.id ?? null });
 }
 
 export async function POST(request: Request) {
@@ -43,7 +44,8 @@ export async function POST(request: Request) {
       data: {
         userId: session.user.id,
         name: input.name,
-        type: input.type,
+        // Normalize empty/absent last4 to null so the column stays clean.
+        last4: input.last4 || null,
       },
     });
 

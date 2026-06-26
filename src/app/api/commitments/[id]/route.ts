@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { commitmentUpdateSchema } from "@/lib/validation";
 import { toMinorUnits } from "@/lib/money";
-import { getCardForUser } from "@/lib/accounts";
+import { getAccountForUser } from "@/lib/accounts";
 import { Prisma } from "@prisma/client";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -28,14 +28,14 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
   const input = parsed.data;
 
-  // A non-null cardId must belong to the session user — never trust the body for
-  // ownership. A literal null is allowed: it clears the link (SetNull relation).
-  if (input.cardId != null && !(await getCardForUser(session.user.id, input.cardId))) {
-    return NextResponse.json({ error: "Unknown card" }, { status: 400 });
+  // A non-null accountId must belong to the session user — never trust the body
+  // for ownership. A literal null is allowed: it clears the link (SetNull relation).
+  if (input.accountId != null && !(await getAccountForUser(session.user.id, input.accountId))) {
+    return NextResponse.json({ error: "Unknown account" }, { status: 400 });
   }
 
   // Build the update payload only from fields actually provided. Unchecked
-  // variant so the scalar `cardId` FK can be set/cleared directly (updateMany
+  // variant so the scalar `accountId` FK can be set/cleared directly (updateMany
   // takes scalar mutation input, not the relation form).
   const data: Prisma.CommitmentUncheckedUpdateInput = {};
   if (input.name !== undefined) data.name = input.name;
@@ -50,7 +50,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   if (input.reminderEnabled !== undefined) data.reminderEnabled = input.reminderEnabled;
   if (input.reminderLeadDays !== undefined) data.reminderLeadDays = input.reminderLeadDays;
   // Scalar FK set/clear; updateMany takes the scalar (null clears via SetNull).
-  if (input.cardId !== undefined) data.cardId = input.cardId;
+  if (input.accountId !== undefined) data.accountId = input.accountId ?? null;
 
   // Scope the update to the owner so one user can't touch another's rows.
   const result = await prisma.commitment.updateMany({

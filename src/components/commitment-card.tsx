@@ -179,16 +179,14 @@ export function CommitmentCard({ commitment }: { commitment: CommitmentDTO }) {
               </span>
             </div>
 
-            {commitment.card && (
+            {commitment.account && (
               <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
                 <CreditCard aria-hidden className="size-3 shrink-0 opacity-70" />
                 <span className="truncate">
-                  {commitment.card.accountName}
-                  <span className="tnum opacity-70">
-                    {commitment.card.last4
-                      ? ` ·${commitment.card.last4}`
-                      : ` · ${commitment.card.label}`}
-                  </span>
+                  {commitment.account.name}
+                  {commitment.account.last4 && (
+                    <span className="tnum opacity-70"> ·{commitment.account.last4}</span>
+                  )}
                 </span>
               </div>
             )}

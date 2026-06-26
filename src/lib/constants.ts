@@ -14,16 +14,6 @@ export type RenewalMode = (typeof RENEWAL_MODES)[number];
 export const CURRENCIES = ["MYR", "USD"] as const;
 export type Currency = (typeof CURRENCIES)[number];
 
-// Payment-account kinds. String enum (SQLite has no native enums), validated
-// at the boundary by zod and reused by the /accounts UI.
-export const ACCOUNT_TYPES = ["bank", "credit", "ewallet", "cash"] as const;
-export type AccountType = (typeof ACCOUNT_TYPES)[number];
-
-// Card networks. Optional on a card — `other` covers anything unlisted. Never
-// stores a PAN/CVV/expiry; the network is display metadata only.
-export const CARD_NETWORKS = ["visa", "mastercard", "amex", "other"] as const;
-export type CardNetwork = (typeof CARD_NETWORKS)[number];
-
 export const TYPE_LABELS: Record<CommitmentType, string> = {
   subscription: "Subscription",
   recurring: "Recurring",
@@ -36,20 +26,6 @@ export const CYCLE_LABELS: Record<Cycle, string> = {
   monthly: "Monthly",
   quarterly: "Quarterly",
   yearly: "Yearly",
-};
-
-export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
-  bank: "Bank account",
-  credit: "Credit card",
-  ewallet: "E-wallet",
-  cash: "Cash",
-};
-
-export const CARD_NETWORK_LABELS: Record<CardNetwork, string> = {
-  visa: "Visa",
-  mastercard: "Mastercard",
-  amex: "Amex",
-  other: "Other",
 };
 
 // Due-date reminders. Lead = how many days before nextDueDate to push;

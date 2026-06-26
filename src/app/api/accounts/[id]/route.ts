@@ -29,7 +29,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   // Build the update payload only from fields actually provided.
   const data: Prisma.PaymentAccountUpdateInput = {};
   if (input.name !== undefined) data.name = input.name;
-  if (input.type !== undefined) data.type = input.type;
+  // An explicit empty string means "clear the last4" → persist as null;
+  // an absent field leaves the column untouched.
+  if (input.last4 !== undefined) data.last4 = input.last4 || null;
 
   // Scope the update to the owner so one user can't touch another's account.
   // A non-existent or foreign id matches 0 rows → 404.
@@ -54,8 +56,8 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
 
   const { id } = await params;
 
-  // Owner-scoped delete; cascades to the account's cards and SetNulls any
-  // linked commitments (schema-level rules from T1).
+  // Owner-scoped delete; SetNulls any linked commitments and clears this
+  // account as any user's default (schema-level SetNull rules).
   const result = await prisma.paymentAccount.deleteMany({
     where: { id, userId: session.user.id },
   });

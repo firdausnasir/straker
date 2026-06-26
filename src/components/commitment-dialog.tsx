@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { signOut } from "next-auth/react";
-import type { CommitmentDTO } from "@/lib/types";
+import { Plus } from "lucide-react";
+import type { CommitmentDTO, PaymentAccountDTO } from "@/lib/types";
 import {
   COMMITMENT_TYPES,
   CURRENCIES,
@@ -33,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DatePicker } from "./date-picker";
+import { AccountDialog } from "./accounts/account-dialog";
 
 // Local-date yyyy-mm-dd (the API coerces it to a Date; avoids UTC off-by-one).
 function toDateInput(date: Date): string {
@@ -52,17 +54,13 @@ function reminderLeadLabel(days: number): string {
   return days === 0 ? "On the due date" : `${days} day${days === 1 ? "" : "s"} before`;
 }
 
-// Shape returned by GET /api/accounts. Cards carry no PAN — label/last4/network only.
-type PickerCard = { id: string; label: string; last4: string | null; network: string | null };
-type PickerAccount = { id: string; name: string; type: string; cards: PickerCard[] };
+// Sentinel for the "No account" option — Select can't hold a real null value, so
+// we map this back to null when building the request body.
+const NO_ACCOUNT = "__none__";
 
-// Sentinel for the "No card" option — Select can't hold a real null value, so we
-// map this back to null when building the request body.
-const NO_CARD = "__none__";
-
-// Card display: "{label} ·{last4}" when a last4 is on file, else just the label.
-function cardOptionLabel(card: PickerCard): string {
-  return card.last4 ? `${card.label} ·${card.last4}` : card.label;
+// Account display: "{name} ·{last4}" when a last4 is on file, else just the name.
+function accountOptionLabel(account: PaymentAccountDTO): string {
+  return account.last4 ? `${account.name} ·${account.last4}` : account.name;
 }
 
 // Single form for both create and edit. Passing `commitment` switches it to
@@ -100,52 +98,68 @@ export function CommitmentDialog({
   );
   const [pending, setPending] = useState(false);
 
-  // Optional account→card link. Pre-seed from the existing card in edit mode so
-  // the picker reflects the current link before accounts have loaded.
-  const [accounts, setAccounts] = useState<PickerAccount[]>([]);
-  const [accountId, setAccountId] = useState<string>(commitment?.card?.accountId ?? "");
-  const [cardId, setCardId] = useState<string>(commitment?.card?.id ?? NO_CARD);
+  // Optional payment-account link, single flat layer.
+  // - Edit: seed from the existing link synchronously so the picker is correct
+  //   before accounts load. NEVER read defaultAccountId in edit mode — the user
+  //   already chose this account; the system default is irrelevant.
+  // - Create: start at "no account"; the fetch below applies defaultAccountId once.
+  const [accounts, setAccounts] = useState<PaymentAccountDTO[]>([]);
+  const [accountId, setAccountId] = useState<string>(
+    isEdit ? commitment?.accountId ?? NO_ACCOUNT : NO_ACCOUNT,
+  );
+  const [showAddAccount, setShowAddAccount] = useState(false);
 
   // Load the user's accounts once on mount so the picker has options. Failure is
   // non-fatal — the link is optional, so we leave the picker empty rather than
-  // blocking the form.
-  useEffect(() => {
-    let active = true;
+  // blocking the form. Returns the loaded list so callers (add-account flow) can
+  // act on the fresh data without waiting for a state re-render.
+  async function loadAccounts(): Promise<PaymentAccountDTO[]> {
+    try {
+      const res = await fetch("/api/accounts");
 
-    async function loadAccounts() {
-      try {
-        const res = await fetch("/api/accounts");
-
-        if (!res.ok) {
-          return;
-        }
-
-        const data = (await res.json()) as { accounts?: PickerAccount[] };
-
-        if (active) {
-          setAccounts(data.accounts ?? []);
-        }
-      } catch {
-        // Optional feature — swallow and leave the picker empty.
+      if (!res.ok) {
+        return [];
       }
+
+      const data = (await res.json()) as {
+        accounts?: PaymentAccountDTO[];
+        defaultAccountId?: string | null;
+      };
+      const loaded = data.accounts ?? [];
+
+      setAccounts(loaded);
+
+      // Create mode only: pre-fill the system default ONCE, on first load. We
+      // gate on the still-untouched NO_ACCOUNT value so a later refetch (e.g.
+      // after adding an account) never clobbers a deliberate user choice.
+      if (!isEdit && data.defaultAccountId) {
+        setAccountId((current) => (current === NO_ACCOUNT ? data.defaultAccountId! : current));
+      }
+
+      return loaded;
+    } catch {
+      // Optional feature — swallow and leave the picker empty.
+      return [];
     }
+  }
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reason: mount-only fetch; setState runs after await, not synchronously
     void loadAccounts();
-
-    return () => {
-      active = false;
-    };
+    // Mount-only: defaultAccountId is read once here, never reactively re-applied.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reason: load once on mount
   }, []);
 
-  // Cards available for the chosen account; empty until an account is picked.
-  const selectedAccount = accounts.find((a) => a.id === accountId);
-  const cardsForAccount = selectedAccount?.cards ?? [];
+  // After an inline account is created, refetch. If it was the FIRST account,
+  // auto-select it so the user doesn't have to pick what they just made.
+  async function handleAccountSaved() {
+    const before = accounts.length;
+    const loaded = await loadAccounts();
+    setShowAddAccount(false);
 
-  // Switching account invalidates the prior card choice — reset to "No card".
-  // The Select hands back `string | null`; coalesce to "" (no account).
-  function handleAccountChange(value: string | null) {
-    setAccountId(value ?? "");
-    setCardId(NO_CARD);
+    if (before === 0 && loaded.length === 1) {
+      setAccountId(loaded[0].id);
+    }
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -169,8 +183,8 @@ export function CommitmentDialog({
             notes,
             reminderEnabled,
             reminderLeadDays,
-            // NO_CARD sentinel → null clears the link; otherwise send the card id.
-            cardId: cardId === NO_CARD ? null : cardId,
+            // NO_ACCOUNT sentinel → null clears the link; otherwise send the id.
+            accountId: accountId === NO_ACCOUNT ? null : accountId,
           }),
         },
       );
@@ -306,51 +320,43 @@ export function CommitmentDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>
-                Account <span className="font-normal text-muted-foreground">(optional)</span>
-              </Label>
-              <Select value={accountId} onValueChange={handleAccountChange}>
+          <div className="space-y-1.5">
+            <Label>
+              Account <span className="font-normal text-muted-foreground">(optional)</span>
+            </Label>
+            {accounts.length === 0 ? (
+              // No accounts on file yet — offer to create one inline instead of a
+              // picker with nothing but "No account" in it.
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-11 w-full justify-start gap-2 rounded-lg active:scale-[0.98]"
+                onClick={() => setShowAddAccount(true)}
+              >
+                <Plus className="size-4" aria-hidden />
+                Add account
+              </Button>
+            ) : (
+              <Select value={accountId} onValueChange={(v) => setAccountId(v ?? NO_ACCOUNT)}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choose…">
-                    {(value) =>
-                      value ? accounts.find((a) => a.id === value)?.name ?? "Choose…" : "Choose…"
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Card</Label>
-              <Select value={cardId} onValueChange={(v) => setCardId(v ?? NO_CARD)} disabled={!accountId}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choose…">
+                  <SelectValue>
                     {(value) => {
-                      const card = cardsForAccount.find((c) => c.id === value);
+                      const account = accounts.find((a) => a.id === value);
 
-                      return card ? cardOptionLabel(card) : "No card";
+                      return account ? accountOptionLabel(account) : "No account";
                     }}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_CARD}>No card</SelectItem>
-                  {cardsForAccount.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {cardOptionLabel(c)}
+                  <SelectItem value={NO_ACCOUNT}>No account</SelectItem>
+                  {accounts.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {accountOptionLabel(a)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            )}
           </div>
 
           <label className="flex cursor-pointer items-center justify-between rounded-xl border border-border bg-secondary px-4 py-3.5">
@@ -426,6 +432,12 @@ export function CommitmentDialog({
           </div>
         </form>
       </DialogContent>
+
+      {/* Inline create-account flow; reuses the same dialog as Settings. On save
+          we refetch and (if it was the first account) auto-select it. */}
+      {showAddAccount && (
+        <AccountDialog onClose={() => setShowAddAccount(false)} onSaved={handleAccountSaved} />
+      )}
     </Dialog>
   );
 }

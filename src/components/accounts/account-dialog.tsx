@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { signOut } from "next-auth/react";
-import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS, type AccountType } from "@/lib/constants";
 import type { PaymentAccountDTO } from "@/lib/types";
 import {
   Dialog,
@@ -15,13 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 // Create + edit share this form. Passing `account` switches it to edit (PATCH
 // the existing row); omitting it creates a new account.
@@ -37,18 +29,22 @@ export function AccountDialog({
   const isEdit = Boolean(account);
 
   const [name, setName] = useState(account?.name ?? "");
-  const [type, setType] = useState<AccountType>(account?.type ?? "bank");
+  const [last4, setLast4] = useState(account?.last4 ?? "");
   const [pending, setPending] = useState(false);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setPending(true);
 
+    const trimmedLast4 = last4.trim();
+
     try {
       const res = await fetch(isEdit ? `/api/accounts/${account!.id}` : "/api/accounts", {
         method: isEdit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, type }),
+        // last4 is optional; send null rather than an empty string so the
+        // validator treats it as "no digits given" instead of an invalid value.
+        body: JSON.stringify({ name, last4: trimmedLast4 === "" ? null : trimmedLast4 }),
       });
 
       if (res.status === 401) {
@@ -84,35 +80,36 @@ export function AccountDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="account-name">Name</Label>
-            <Input
-              id="account-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              autoFocus
-              maxLength={60}
-              placeholder="Maybank, Amex Platinum, GrabPay…"
-            />
-          </div>
+          <div className="grid grid-cols-[1fr_8rem] gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="account-name">Name</Label>
+              <Input
+                id="account-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                autoFocus
+                maxLength={60}
+                placeholder="Maybank, Amex Platinum, GrabPay…"
+              />
+            </div>
 
-          <div className="space-y-1.5">
-            <Label>Type</Label>
-            <Select value={type} onValueChange={(v) => setType(v as AccountType)}>
-              <SelectTrigger className="w-full">
-                <SelectValue>
-                  {(v) => ACCOUNT_TYPE_LABELS[v as AccountType]}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {ACCOUNT_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {ACCOUNT_TYPE_LABELS[t]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-1.5">
+              <Label htmlFor="account-last4">
+                Last 4 <span className="font-normal text-muted-foreground">(opt.)</span>
+              </Label>
+              <Input
+                id="account-last4"
+                value={last4}
+                // Strip non-digits and cap at 4 so the field can never hold an
+                // invalid last4 — parse at the boundary, keep state trusted.
+                onChange={(e) => setLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                inputMode="numeric"
+                maxLength={4}
+                placeholder="4242"
+                className="tnum"
+              />
+            </div>
           </div>
 
           <div className="flex gap-2 pt-1">
